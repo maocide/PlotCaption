@@ -29,3 +29,4 @@ transformers
 typing_extensions
 urllib3
 tiktoken
+qwen-vl-utils

@@ -3,8 +3,9 @@ from tkinter import filedialog, messagebox, scrolledtext
 import threading
 from PIL import Image, ImageTk
 import torch
-from transformers import AutoProcessor, LlavaForConditionalGeneration
+from transformers import AutoProcessor, LlavaForConditionalGeneration, AutoModelForCausalLM, AutoTokenizer
 from tkinterdnd2 import DND_FILES, TkinterDnD
+from qwen_vl_utils import process_vision_info
 
 # --- Configuration ---
 # Use a quantized model for lower VRAM usage, or the full model for better quality.
@@ -42,6 +43,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.image_path = None
         self.image_raw = None
         self.image_tk = None
+        self.is_toriigate_model = False
 
         # --- UI Setup ---
         self._setup_widgets()
@@ -157,7 +159,7 @@ class VLM_GUI(TkinterDnD.Tk):
         Initiates model loading in a separate thread to keep the GUI responsive.
 
         Retrieves the model name from the entry field, validates it, and
-        starts the `load_model` method in a new thread.
+        starts the appropriate model loading method in a new thread.
         """
         model_name = self.model_name_entry.get()
         if not model_name:
@@ -167,20 +169,26 @@ class VLM_GUI(TkinterDnD.Tk):
         self.update_status(f"Loading model: {model_name}...")
         self.load_button.config(state=tk.DISABLED, text="Loading...")
         self.model_name_entry.config(state=tk.DISABLED)
-        threading.Thread(target=self.load_model, args=(model_name,), daemon=True).start()
 
-    def load_model(self, model_name):
+        if model_name == "Minthy/ToriiGate-v0.4-7B":
+            target_func = self._load_toriigate_model
+        else:
+            target_func = self._load_llava_model
+
+        threading.Thread(target=target_func, args=(model_name,), daemon=True).start()
+
+    def _load_llava_model(self, model_name):
         """
-        Loads the specified VLM model and processor from Hugging Face.
+        Loads a LLaVA-based VLM model and processor from Hugging Face.
 
         Handles the actual model loading, updating the GUI on success or failure.
         This method is designed to be run in a separate thread.
 
-        Args:git
+        Args:
             model_name (str): The name of the model to load from Hugging Face.
         """
         try:
-            self.processor = AutoProcessor.from_pretrained(model_name, )
+            self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
             self.model = LlavaForConditionalGeneration.from_pretrained(
                 model_name,
                 torch_dtype=torch.bfloat16,
@@ -188,6 +196,7 @@ class VLM_GUI(TkinterDnD.Tk):
                 trust_remote_code=True
             )
             self.model.eval()
+            self.is_toriigate_model = False
             self.update_status(f"Model loaded successfully on {self.device.upper()}.")
             self.load_button.config(state=tk.DISABLED, text="Loaded")
             self.unload_button.config(state=tk.NORMAL)
@@ -199,6 +208,39 @@ class VLM_GUI(TkinterDnD.Tk):
             self.load_button.config(state=tk.NORMAL, text="Load Model")
             self.model_name_entry.config(state=tk.NORMAL)
 
+    def _load_toriigate_model(self, model_name):
+        """
+        Loads the Minthy/ToriiGate-v0.4-7B model and processor.
+
+        This is a Qwen-based model and requires specific classes for loading.
+        Handles the actual model loading, updating the GUI on success or failure.
+        This method is designed to be run in a separate thread.
+
+        Args:
+            model_name (str): The name of the model to load (should be "Minthy/ToriiGate-v0.4-7B").
+        """
+        try:
+            self.processor = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                trust_remote_code=True,
+                device_map="auto",
+                torch_dtype=torch.bfloat16
+            )
+            self.model.eval()
+            self.is_toriigate_model = True
+            self.update_status(f"Model loaded successfully on {self.device.upper()}.")
+            self.load_button.config(state=tk.DISABLED, text="Loaded")
+            self.unload_button.config(state=tk.NORMAL)
+            self.check_generate_button_state()
+        except Exception as e:
+            messagebox.showerror("Model Loading Error",
+                                 f"Failed to load model: {e}\n\nCheck the model name, your internet connection, and ensure you have enough VRAM/RAM.")
+            self.update_status("Model loading failed.")
+            self.load_button.config(state=tk.NORMAL, text="Load Model")
+            self.model_name_entry.config(state=tk.NORMAL)
+
+
     def unload_model(self):
         """
         Unloads the model and processor, and clears GPU memory if applicable.
@@ -206,6 +248,7 @@ class VLM_GUI(TkinterDnD.Tk):
         """
         self.model = None
         self.processor = None
+        self.is_toriigate_model = False
         if self.device == "cuda":
             torch.cuda.empty_cache()
         self.update_status("Model unloaded.")
@@ -220,11 +263,17 @@ class VLM_GUI(TkinterDnD.Tk):
         """
         self.update_status("Generating text...")
         self.generate_button.config(state=tk.DISABLED, text="Generating...")
-        threading.Thread(target=self.generate_description, daemon=True).start()
 
-    def generate_description(self):
+        if self.is_toriigate_model:
+            target_func = self._generate_toriigate_description
+        else:
+            target_func = self._generate_llava_description
+
+        threading.Thread(target=target_func, daemon=True).start()
+
+    def _generate_llava_description(self):
         """
-        Generates a text description for the loaded image based on the user's prompt.
+        Generates a text description for a LLaVA model.
 
         Formats the input for the model, runs inference, decodes the output,
         and displays it in the GUI. This method is designed to be run in a
@@ -265,6 +314,62 @@ class VLM_GUI(TkinterDnD.Tk):
 
                 # The output often includes the full prompt, so we find the assistant's response
                 assistant_response = decoded_output.split("assistant\n")[-1].strip()
+
+            self.update_output_text(assistant_response)
+            self.update_status("Generation complete.")
+
+        except Exception as e:
+            messagebox.showerror("Generation Error", f"An error occurred during generation: {e}")
+            self.update_status("Generation failed.")
+        finally:
+            self.generate_button.config(state=tk.NORMAL, text="Generate Description")
+            self.copy_button.config(state=tk.NORMAL)
+
+    def _generate_toriigate_description(self):
+        """
+        Generates a text description for the Minthy/ToriiGate-v0.4-7B model.
+
+        Formats the input for the Qwen-VL model, runs inference, decodes the output,
+        and displays it in the GUI. This method is designed to be run in a
+        separate thread.
+        """
+        if not self.image_raw or not self.model or not self.processor:
+            return
+
+        prompt = self.prompt_text.get("1.0", tk.END).strip()
+        if not prompt:
+            messagebox.showwarning("Input Error", "Prompt cannot be empty.")
+            self.generate_button.config(state=tk.NORMAL, text="Generate Description")
+            return
+
+        try:
+            with torch.no_grad():
+                messages = [
+                    {"role": "system", "content": "You are an expert at analyzing images."},
+                    {"role": "user", "content": [
+                        {"type": "image", "image": self.image_raw},
+                        {"type": "text", "text": prompt}
+                    ]}
+                ]
+
+                text_input = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                image_inputs, _ = process_vision_info(messages)
+
+                model_inputs = self.processor(
+                    text=[text_input],
+                    images=image_inputs,
+                    videos=None,
+                    padding=True,
+                    return_tensors="pt"
+                ).to(self.device)
+
+                generated_ids = self.model.generate(**model_inputs, max_new_tokens=512, do_sample=False)
+
+                trimmed_generated_ids = [out_ids[len(in_ids):] for in_ids, out_ids in zip(model_inputs.input_ids, generated_ids)]
+
+                assistant_response = self.processor.batch_decode(
+                    trimmed_generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
+                )[0]
 
             self.update_output_text(assistant_response)
             self.update_status("Generation complete.")
