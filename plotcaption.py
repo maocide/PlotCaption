@@ -176,15 +176,16 @@ class VLM_GUI(TkinterDnD.Tk):
         Handles the actual model loading, updating the GUI on success or failure.
         This method is designed to be run in a separate thread.
 
-        Args:
+        Args:git
             model_name (str): The name of the model to load from Hugging Face.
         """
         try:
-            self.processor = AutoProcessor.from_pretrained(model_name)
+            self.processor = AutoProcessor.from_pretrained(model_name, )
             self.model = LlavaForConditionalGeneration.from_pretrained(
                 model_name,
                 torch_dtype=torch.bfloat16,
-                device_map=self.device
+                device_map="auto",
+                trust_remote_code=True
             )
             self.model.eval()
             self.update_status(f"Model loaded successfully on {self.device.upper()}.")
