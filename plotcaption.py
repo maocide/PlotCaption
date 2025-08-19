@@ -151,6 +151,12 @@ class AutocompleteEntry(tk.Frame):
         """Hides the listbox when the entry widget loses focus."""
         self.after(200, self.hide_listbox) # Delay to allow listbox click to register
 
+    def configure(self, *args, **kwargs):
+        """Configures the underlying Entry widget."""
+        self.entry.configure(*args, **kwargs)
+
+    config = configure
+
     def get(self):
         """Returns the current text from the entry widget."""
         return self.var.get()
