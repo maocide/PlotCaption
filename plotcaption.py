@@ -10,19 +10,26 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 # Use a quantized model for lower VRAM usage, or the full model for better quality.
 # Quantized model: "John6666/llama-joycaption-beta-one-hf-llava-nf4"
 # Full model: "fancyfeast/llama-joycaption-alpha-two-hf-llava"
-MODEL_NAME = "fancyfeast/llama-joycaption-alpha-two-hf-llava"
+DEFAULT_MODEL = "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 DEFAULT_PROMPT = "Write a detailed description of this image."
 MAX_THUMBNAIL_SIZE = (400, 400)
 
 
 class VLM_GUI(TkinterDnD.Tk):
     """
-    A simple GUI for interacting with the JoyCaption Vision Language Model.
+    A simple GUI for interacting with a Vision Language Model (VLM).
+
+    Allows users to load a model from Hugging Face, provide an image via
+    drag-and-drop, ask a question or give a prompt, and get a text-based
+    response from the model.
     """
 
     def __init__(self):
+        """
+        Initializes the main application window and its components.
+        """
         super().__init__()
-        self.title("JoyCaption VLM Interface")
+        self.title("VLM Interface")
         self.geometry("900x750")
         self.configure(bg="#2E2E2E")
 
@@ -54,7 +61,14 @@ class VLM_GUI(TkinterDnD.Tk):
 
         self.unload_button = tk.Button(top_frame, text="Unload Model", command=self.unload_model, state=tk.DISABLED,
                                        bg="#4A4A4A", fg="white", relief=tk.FLAT, width=15)
-        self.unload_button.pack(side=tk.LEFT)
+        self.unload_button.pack(side=tk.LEFT, padx=(0, 20))
+
+        model_label = tk.Label(top_frame, text="Model:", bg="#2E2E2E", fg="white")
+        model_label.pack(side=tk.LEFT)
+
+        self.model_name_entry = tk.Entry(top_frame, bg="#3C3C3C", fg="white", relief=tk.FLAT, width=50)
+        self.model_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
+        self.model_name_entry.insert(0, DEFAULT_MODEL)
 
         # --- Main Content Frame (Image and Text) ---
         content_frame = tk.Frame(main_frame, bg="#2E2E2E")
@@ -102,7 +116,15 @@ class VLM_GUI(TkinterDnD.Tk):
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     def handle_drop(self, event):
-        """Handles the file drop event."""
+        """
+        Handles the drag-and-drop file event.
+
+        Validates if the dropped file is an image and, if so, proceeds to
+        load and display it.
+
+        Args:
+            event: The event object from TkinterDnD, containing the file path.
+        """
         filepath = event.data.strip('{}')  # Clean up the path string from dnd
         if filepath.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
             self.image_path = filepath
@@ -111,7 +133,10 @@ class VLM_GUI(TkinterDnD.Tk):
             messagebox.showerror("Error", "Invalid file type. Please drop a valid image file.")
 
     def load_and_display_image(self):
-        """Loads the image from the path and displays a thumbnail."""
+        """
+        Loads an image from the stored file path, converts it to RGB,
+        and displays a thumbnail in the GUI.
+        """
         try:
             self.image_raw = Image.open(self.image_path).convert("RGB")
 
@@ -128,17 +153,36 @@ class VLM_GUI(TkinterDnD.Tk):
             self.image_path = None
 
     def load_model_threaded(self):
-        """Starts the model loading process in a separate thread to avoid freezing the GUI."""
-        self.update_status(f"Loading model: {MODEL_NAME}...")
-        self.load_button.config(state=tk.DISABLED, text="Loading...")
-        threading.Thread(target=self.load_model, daemon=True).start()
+        """
+        Initiates model loading in a separate thread to keep the GUI responsive.
 
-    def load_model(self):
-        """Loads the VLM model and processor from Hugging Face."""
+        Retrieves the model name from the entry field, validates it, and
+        starts the `load_model` method in a new thread.
+        """
+        model_name = self.model_name_entry.get()
+        if not model_name:
+            messagebox.showerror("Error", "Model name cannot be empty.")
+            return
+
+        self.update_status(f"Loading model: {model_name}...")
+        self.load_button.config(state=tk.DISABLED, text="Loading...")
+        self.model_name_entry.config(state=tk.DISABLED)
+        threading.Thread(target=self.load_model, args=(model_name,), daemon=True).start()
+
+    def load_model(self, model_name):
+        """
+        Loads the specified VLM model and processor from Hugging Face.
+
+        Handles the actual model loading, updating the GUI on success or failure.
+        This method is designed to be run in a separate thread.
+
+        Args:
+            model_name (str): The name of the model to load from Hugging Face.
+        """
         try:
-            self.processor = AutoProcessor.from_pretrained(MODEL_NAME)
+            self.processor = AutoProcessor.from_pretrained(model_name)
             self.model = LlavaForConditionalGeneration.from_pretrained(
-                MODEL_NAME,
+                model_name,
                 torch_dtype=torch.bfloat16,
                 device_map=self.device
             )
@@ -149,12 +193,16 @@ class VLM_GUI(TkinterDnD.Tk):
             self.check_generate_button_state()
         except Exception as e:
             messagebox.showerror("Model Loading Error",
-                                 f"Failed to load model: {e}\n\nCheck your internet connection and ensure you have enough VRAM/RAM.")
+                                 f"Failed to load model: {e}\n\nCheck the model name, your internet connection, and ensure you have enough VRAM/RAM.")
             self.update_status("Model loading failed.")
             self.load_button.config(state=tk.NORMAL, text="Load Model")
+            self.model_name_entry.config(state=tk.NORMAL)
 
     def unload_model(self):
-        """Unloads the model and clears memory."""
+        """
+        Unloads the model and processor, and clears GPU memory if applicable.
+        Resets the GUI state to allow loading a new model.
+        """
         self.model = None
         self.processor = None
         if self.device == "cuda":
@@ -162,16 +210,25 @@ class VLM_GUI(TkinterDnD.Tk):
         self.update_status("Model unloaded.")
         self.load_button.config(state=tk.NORMAL, text="Load Model")
         self.unload_button.config(state=tk.DISABLED)
+        self.model_name_entry.config(state=tk.NORMAL)
         self.check_generate_button_state()
 
     def generate_threaded(self):
-        """Starts the text generation in a separate thread."""
+        """
+        Initiates text generation in a separate thread to keep the GUI responsive.
+        """
         self.update_status("Generating text...")
         self.generate_button.config(state=tk.DISABLED, text="Generating...")
         threading.Thread(target=self.generate_description, daemon=True).start()
 
     def generate_description(self):
-        """Generates a description for the loaded image using the model."""
+        """
+        Generates a text description for the loaded image based on the user's prompt.
+
+        Formats the input for the model, runs inference, decodes the output,
+        and displays it in the GUI. This method is designed to be run in a
+        separate thread.
+        """
         if not self.image_raw or not self.model or not self.processor:
             return
 
@@ -219,25 +276,40 @@ class VLM_GUI(TkinterDnD.Tk):
             self.copy_button.config(state=tk.NORMAL)
 
     def update_status(self, text):
-        """Updates the status bar text from any thread."""
+        """
+        Updates the status bar text in a thread-safe manner.
+
+        Args:
+            text (str): The text to display in the status bar.
+        """
         self.status_bar.config(text=text)
 
     def update_output_text(self, text):
-        """Updates the output text box from any thread."""
+        """
+        Updates the main output text box in a thread-safe manner.
+
+        Args:
+            text (str): The text to display in the output box.
+        """
         self.output_text.config(state=tk.NORMAL)
         self.output_text.delete("1.0", tk.END)
         self.output_text.insert(tk.END, text)
         self.output_text.config(state=tk.DISABLED)
 
     def check_generate_button_state(self):
-        """Enables or disables the generate button based on model and image state."""
+        """
+        Enables or disables the 'Generate' button based on whether both a
+        model and an image are loaded.
+        """
         if self.model and self.image_path:
             self.generate_button.config(state=tk.NORMAL)
         else:
             self.generate_button.config(state=tk.DISABLED)
 
     def copy_to_clipboard(self):
-        """Copies the content of the output text box to the clipboard."""
+        """
+        Copies the entire content of the output text box to the system clipboard.
+        """
         self.clipboard_clear()
         self.clipboard_append(self.output_text.get("1.0", tk.END))
         self.update_status("Output copied to clipboard.")
