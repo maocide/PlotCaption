@@ -85,11 +85,13 @@ class AutocompleteEntry(tk.Frame):
             for item in completions:
                 self.listbox.insert(tk.END, item)
 
-            x = self.entry.winfo_x()
-            y = self.entry.winfo_y() + self.entry.winfo_height()
+            # Calculate position relative to the parent of the AutocompleteEntry
+            x = self.winfo_x() + self.entry.winfo_x()
+            y = self.winfo_y() + self.entry.winfo_y() + self.entry.winfo_height()
             width = self.entry.winfo_width()
 
             self.listbox.place(x=x, y=y, width=width)
+            self.listbox.lift() # Bring the listbox to the top of the stacking order
             self.listbox.bind("<Button-1>", self.on_listbox_select)
             self.listbox.bind("<Return>", self.on_enter)
 
