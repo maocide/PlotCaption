@@ -3,7 +3,8 @@ from tkinter import filedialog, messagebox, scrolledtext
 import threading
 from PIL import Image, ImageTk
 import torch
-from transformers import AutoProcessor, LlavaForConditionalGeneration, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoProcessor, LlavaForConditionalGeneration, AutoModelForCausalLM, AutoTokenizer, \
+    AutoModelForVision2Seq
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from qwen_vl_utils import process_vision_info
 
@@ -220,12 +221,13 @@ class VLM_GUI(TkinterDnD.Tk):
             model_name (str): The name of the model to load (should be "Minthy/ToriiGate-v0.4-7B").
         """
         try:
-            self.processor = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+
+            self.model = AutoModelForVision2Seq.from_pretrained( # CHANGE THIS LINE!
                 model_name,
                 trust_remote_code=True,
-                device_map="auto",
-                torch_dtype=torch.bfloat16
+                device_map="auto",  # This helps distribute the model across your GPU's VRAM automatically
+                torch_dtype=torch.bfloat16  # <--- ADD THIS LINE!
             )
             self.model.eval()
             self.is_toriigate_model = True
