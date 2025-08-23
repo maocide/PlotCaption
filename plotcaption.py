@@ -428,6 +428,7 @@ class VLM_GUI(TkinterDnD.Tk):
             messagebox.showerror("Model Loading Error",
                                  f"Failed to load model: {e}\n\nCheck the model name, your internet connection, and ensure you have enough VRAM/RAM.")
             self.update_status("Model loading failed.")
+            print("Error message:", e)
             self.load_button.config(state=tk.NORMAL, text="Load Model")
             self.model_name_entry.config(state=tk.NORMAL)
         finally:

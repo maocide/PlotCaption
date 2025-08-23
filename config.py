@@ -3,7 +3,7 @@
 # Quantized model: "John6666/llama-joycaption-beta-one-hf-llava-nf4"
 # Full model: "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 
-DEFAULT_MODELS = ["minthy/ToriiGate-v0.4-7B", "fancyfeast/llama-joycaption-alpha-two-hf-llava"]
+DEFAULT_MODELS = ["Minthy/ToriiGate-v0.4-7B", "fancyfeast/llama-joycaption-alpha-two-hf-llava"]
 DEFAULT_PROMPT = "Write a detailed description of this image."
 MAX_THUMBNAIL_SIZE = (400, 400)
 MODEL_HISTORY_FILE = "model_history.json"

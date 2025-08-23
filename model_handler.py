@@ -28,6 +28,7 @@ class ModelHandler:
         Raises:
             Exception: If the model loading fails.
         """
+        print(model_name)
         if model_name == "Minthy/ToriiGate-v0.4-7B":
             self._load_toriigate_model(model_name)
         else:
@@ -58,7 +59,8 @@ class ModelHandler:
             model_name (str): The name of the model to load.
         """
         from transformers import AutoConfig
-
+        print("Loading Toriigate model...")
+        self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
         config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
         config.num_attention_heads = 28
 
