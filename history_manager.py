@@ -1,6 +1,7 @@
 import json
 import os
-from config import MODEL_HISTORY_FILE, DEFAULT_MODEL
+from config import MODEL_HISTORY_FILE, DEFAULT_MODELS
+
 
 class HistoryManager:
     """
@@ -28,9 +29,9 @@ class HistoryManager:
                 with open(self.history_file, "r") as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError):
-                return [DEFAULT_MODEL]  # Return default if file is corrupted
+                return DEFAULT_MODELS  # Return default if file is corrupted
         else:
-            return [DEFAULT_MODEL]
+            return DEFAULT_MODELS
 
     def _save_model_history(self):
         """Saves the current model history list to the JSON file."""
