@@ -7,7 +7,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
-    BUTTON_PRESSED_COLOR, BUTTON_COLOR
+    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR
 from history_manager import HistoryManager
 from model_handler import ModelHandler
 from ui_components import AutocompleteEntry
@@ -59,11 +59,11 @@ class VLM_GUI(TkinterDnD.Tk):
         # Style for the container frame
         self.style.configure('Dark.TFrame', background=DARK_COLOR)
         # Style for the scrollbar
-        self.style.configure('Dark.Vertical.TScrollbar', background=FIELD_BORDER_AREA_COLOR, troughcolor='#2E2E2E')
+        self.style.configure('Dark.Vertical.TScrollbar', background=FIELD_BORDER_AREA_COLOR, troughcolor=DARK_COLOR)
         # This tells the scrollbar to keep its color even when disabled
         self.style.map('Dark.Vertical.TScrollbar',
                        background=[('disabled', FIELD_BORDER_AREA_COLOR)],
-                       troughcolor=[('disabled', '#2E2E2E')])
+                       troughcolor=[('disabled', DARK_COLOR)])
 
         # Configure the main Notebook body
         self.style.configure('TNotebook',
@@ -87,7 +87,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # Configure the Tab buttons themselves
         self.style.configure('TNotebook.Tab',
-                             foreground='white',
+                             foreground=FIELD_FOREGROUND_COLOR,
                              padding=[10, 5],
                              background=INACTIVE_TAB_COLOR,
                              borderwidth=0)
@@ -106,8 +106,10 @@ class VLM_GUI(TkinterDnD.Tk):
         # Add 'focuscolor' to the map.
         self.style.map('TNotebook.Tab',
                        background=[('selected', DARK_COLOR)],
-                       foreground=[('selected', 'white')],
+                       foreground=[('selected', FIELD_FOREGROUND_COLOR)],
                        focuscolor=[('selected', DARK_COLOR)])  # <--- ADD THIS LINE
+
+        self.style.configure('Placeholder.TLabel', background=TEXT_BG_COLOR, foreground=PLACEHOLDER_FG_COLOR)
 
         # --- WIDGET CREATION ---
         # (Your existing code for creating the notebook and frames is correct)
@@ -128,8 +130,8 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # --- Status Bar ---
         # Create the status bar first and pack it to the bottom of the window
-        self.status_bar = tk.Label(self, text="Ready. Please load a model.", bd=1, relief=tk.SUNKEN, anchor=tk.W,
-                                   bg=DARK_COLOR, fg="white")
+        self.style.configure('Dark.TLabel', background=DARK_COLOR, foreground="white")
+        self.status_bar = ttk.Label(self, text="Ready. Please load a model.", style='Dark.TLabel', anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # --- Tab Control ---
@@ -153,7 +155,7 @@ class VLM_GUI(TkinterDnD.Tk):
         (Corrected Version)
         """
         # --- Create the Label ---
-        label = ttk.Label(parent, text=label_text, background=DARK_COLOR, foreground="white")
+        label = ttk.Label(parent, text=label_text, background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
         label.grid(row=grid_row, column=grid_column, padx=5, pady=(5, 0), sticky="w")
 
         # --- Create the Container Frame for the Text and Scrollbar ---
@@ -166,10 +168,10 @@ class VLM_GUI(TkinterDnD.Tk):
         # --- Create the Text Widget and Scrollbar ---
         text_box = tk.Text(text_frame,
                            wrap="word",
-                           bg="#3C3C3C",
-                           fg="white",
+                           bg=TEXT_BG_COLOR,
+                           fg=FIELD_FOREGROUND_COLOR,
                            relief="flat",
-                           insertbackground="white"
+                           insertbackground=INSERT_BACKGROUND_COLOR
                            )
 
         scrollbar = ttk.Scrollbar(text_frame,
@@ -252,7 +254,7 @@ class VLM_GUI(TkinterDnD.Tk):
         parent_element.config(padding=15)
 
         # --- Top Frame for Api data ---
-        top_frame = tk.Frame(parent_element, bg=DARK_COLOR)
+        top_frame = ttk.Frame(parent_element, style='Dark.TFrame')
         top_frame.pack(fill=tk.X, pady=(0, 10))
 
         # --- Configure the columns of the PARENT element to be resizable ---
@@ -262,7 +264,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # --- Url Text ---
         # --- Row 0 ---
-        url_label = ttk.Label(top_frame, text="API Url:", background=DARK_COLOR, foreground="white")
+        url_label = ttk.Label(top_frame, text="API Url:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
         # sticky="w" aligns the text to the West (left) of its grid cell
         url_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
@@ -270,7 +272,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.character_card_prompt_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # --- Row 1 ---
-        llm_model_label = ttk.Label(top_frame, text="Model:", background=DARK_COLOR, foreground="white")
+        llm_model_label = ttk.Label(top_frame, text="Model:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
         # sticky="w" aligns the text to the West (left) of its grid cell
         llm_model_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
@@ -278,7 +280,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.llm_model_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
         # ---Row 0 Col 1 ---
-        llm_key_label = ttk.Label(top_frame, text="API Key:", background=DARK_COLOR, foreground="white")
+        llm_key_label = ttk.Label(top_frame, text="API Key:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
         # sticky="w" aligns the text to the West (left) of its grid cell
         llm_key_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
@@ -286,7 +288,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
         # --- Top Frame for Api data ---
-        button_frame = tk.Frame(top_frame, bg=DARK_COLOR)
+        button_frame = ttk.Frame(top_frame, style='Dark.TFrame')
         button_frame.grid(row=1, column=3, padx=5, pady=5, sticky="e")
 
         self.save_button = ttk.Button(button_frame, text="Save", command=None, style='Dark.TButton')
@@ -302,72 +304,70 @@ class VLM_GUI(TkinterDnD.Tk):
         # In your _setup_widgets method:
         # Add highlightthickness=0 and bd=0 (border) to this line.
 
-        main_frame = tk.Frame(parent_element, bg=DARK_COLOR, highlightthickness=0, bd=0)
+        main_frame = ttk.Frame(parent_element, style='Dark.TFrame')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
 
         # --- Top Frame for Model Control ---
-        top_frame = tk.Frame(main_frame, bg=DARK_COLOR)
+        top_frame = ttk.Frame(main_frame, style='Dark.TFrame')
         top_frame.pack(fill=tk.X, pady=(0, 10))
 
-        self.load_button = tk.Button(top_frame, text="Load Model", command=self.load_model_threaded, bg="#4A4A4A",
-                                     fg="white", relief=tk.FLAT, width=15)
+        self.load_button = ttk.Button(top_frame, text="Load Model", command=self.load_model_threaded, style='Dark.TButton', width=15)
         self.load_button.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.unload_button = tk.Button(top_frame, text="Unload Model", command=self.unload_model, state=tk.DISABLED,
-                                       bg="#4A4A4A", fg="white", relief=tk.FLAT, width=15)
+        self.unload_button = ttk.Button(top_frame, text="Unload Model", command=self.unload_model, style='Dark.TButton', width=15)
         self.unload_button.pack(side=tk.LEFT, padx=(0, 20))
+        self.unload_button.config(state=tk.DISABLED)
 
-        model_label = tk.Label(top_frame, text="Model:", bg=DARK_COLOR, fg="white")
+        model_label = ttk.Label(top_frame, text="Model:", style='Dark.TLabel')
         model_label.pack(side=tk.LEFT)
 
         model_history = self.history_manager.get_history()
         self.model_name_entry = AutocompleteEntry(
             top_frame,
             completions=model_history,
-            bg="#3C3C3C", fg="white", relief=tk.FLAT, width=50
+            width=50
         )
         self.model_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
         self.model_name_entry.insert(0, model_history[0] if model_history else "")
 
         # --- Main Content Frame (Image and Text) ---
-        content_frame = tk.Frame(main_frame, bg=DARK_COLOR)
+        content_frame = ttk.Frame(main_frame, style='Dark.TFrame')
         content_frame.pack(fill=tk.BOTH, expand=True)
 
         # --- Image Display Area ---
-        self.image_label = tk.Label(content_frame, text="Drag & Drop an Image Here", bg="#3C3C3C", fg="gray",
-                                    relief=tk.SOLID, bd=1)
+        self.image_label = ttk.Label(content_frame, text="Drag & Drop an Image Here", style='Placeholder.TLabel', relief=tk.SOLID)
         self.image_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
         self.image_label.drop_target_register(DND_FILES)
         self.image_label.dnd_bind('<<Drop>>', self.handle_drop)
 
         # --- Right Panel for Inputs and Output ---
-        right_panel = tk.Frame(content_frame, bg=DARK_COLOR)
+        right_panel = ttk.Frame(content_frame, style='Dark.TFrame')
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # --- Input Prompt ---
-        prompt_label = tk.Label(right_panel, text="Your Question/Prompt:", bg=DARK_COLOR, fg="white")
+        prompt_label = ttk.Label(right_panel, text="Your Question/Prompt:", style='Dark.TLabel')
         prompt_label.pack(anchor="w")
-        self.llm_url_text = tk.Text(right_panel, height=4, bg="#3C3C3C", fg="white", relief=tk.FLAT,
-                                    insertbackground="white")
+        self.llm_url_text = tk.Text(right_panel, height=4, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR, relief=tk.FLAT,
+                                    insertbackground=INSERT_BACKGROUND_COLOR)
         self.llm_url_text.pack(fill=tk.X, pady=(5, 10))
         self.llm_url_text.insert(tk.END, DEFAULT_PROMPT)
 
         # --- Generate Button ---
-        self.generate_button = tk.Button(right_panel, text="Generate Description", command=self.generate_threaded,
-                                         state=tk.DISABLED, bg="#007ACC", fg="white", relief=tk.FLAT, height=2)
+        self.generate_button = ttk.Button(right_panel, text="Generate Description", command=self.generate_threaded, style='Dark.TButton')
         self.generate_button.pack(fill=tk.X, pady=(0, 10))
+        self.generate_button.config(state=tk.DISABLED)
 
         # --- Output Text Area ---
-        output_label = tk.Label(right_panel, text="Model Output:", bg=DARK_COLOR, fg="white")
+        output_label = ttk.Label(right_panel, text="Model Output:", style='Dark.TLabel')
         output_label.pack(anchor="w")
-        self.output_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg="#3C3C3C", fg="white",
-                                                     relief=tk.FLAT, insertbackground="white", state=tk.DISABLED)
+        self.output_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR,
+                                                     relief=tk.FLAT, insertbackground=INSERT_BACKGROUND_COLOR, state=tk.DISABLED)
         self.output_text.pack(fill=tk.BOTH, expand=True)
 
         # --- Copy Button ---
-        self.copy_button = tk.Button(right_panel, text="Copy Output", command=self.copy_to_clipboard, state=tk.DISABLED,
-                                     bg="#4A4A4A", fg="white", relief=tk.FLAT)
+        self.copy_button = ttk.Button(right_panel, text="Copy Output", command=self.copy_to_clipboard, style='Dark.TButton')
         self.copy_button.pack(fill=tk.X, pady=(10, 0))
+        self.copy_button.config(state=tk.DISABLED)
 
     def handle_drop(self, event):
         """

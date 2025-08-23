@@ -1,6 +1,8 @@
 import tkinter as tk
+from tkinter import ttk
+from config import FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, SELECT_BACKGROUND_COLOR
 
-class AutocompleteEntry(tk.Frame):
+class AutocompleteEntry(ttk.Frame):
     """
     A tkinter widget that features a text entry box with an autocomplete dropdown.
 
@@ -23,10 +25,17 @@ class AutocompleteEntry(tk.Frame):
         self.completions = sorted(completions) if completions else []
         self.var = tk.StringVar()
 
-        self.entry = tk.Entry(self, textvariable=self.var, **kwargs)
+        self.entry = ttk.Entry(self, textvariable=self.var, style='Dark.TEntry', **kwargs)
         self.entry.pack(fill=tk.BOTH, expand=True)
 
-        self.listbox = tk.Listbox(self.winfo_toplevel())
+        self.listbox = tk.Listbox(self.winfo_toplevel(),
+                                 bg=FIELD_BACK_COLOR,
+                                 fg=FIELD_FOREGROUND_COLOR,
+                                 selectbackground=SELECT_BACKGROUND_COLOR,
+                                 selectforeground=FIELD_FOREGROUND_COLOR,
+                                 highlightthickness=0,
+                                 borderwidth=0,
+                                 relief=tk.FLAT)
 
         self.var.trace("w", self.on_text_changed)
         self.entry.bind("<Up>", self.on_arrow_up)
@@ -71,7 +80,7 @@ class AutocompleteEntry(tk.Frame):
             width = self.winfo_width()
 
             self.listbox.place(x=x, y=y, width=width)
-            self.listbox.bind("<Button-1>", self.on_listbox_select)
+            self.listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
             self.listbox.bind("<Return>", self.on_enter)
 
     def hide_listbox(self, event=None):
@@ -117,10 +126,10 @@ class AutocompleteEntry(tk.Frame):
     def on_enter(self, event):
         """Handles the 'Enter' key press to select a suggestion."""
         if self.listbox_active and self.listbox.curselection():
-            self.on_listbox_select(event)
+            self.on_listbox_select()
             return "break"  # Prevents the default Enter behavior
 
-    def on_listbox_select(self, event):
+    def on_listbox_select(self):
         """Handles a selection from the listbox, updating the entry."""
         if self.listbox.curselection():
             selection = self.listbox.get(self.listbox.curselection())
@@ -131,12 +140,6 @@ class AutocompleteEntry(tk.Frame):
     def on_focus_out(self, event):
         """Hides the listbox when the entry widget loses focus."""
         self.after(200, self.hide_listbox) # Delay to allow listbox click to register
-
-    def configure(self, *args, **kwargs):
-        """Configures the underlying Entry widget."""
-        self.entry.configure(*args, **kwargs)
-
-    config = configure
 
     def get(self):
         """Returns the current text from the entry widget."""
