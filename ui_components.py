@@ -129,7 +129,7 @@ class AutocompleteEntry(ttk.Frame):
             self.on_listbox_select()
             return "break"  # Prevents the default Enter behavior
 
-    def on_listbox_select(self):
+    def on_listbox_select(self, event=None):
         """Handles a selection from the listbox, updating the entry."""
         if self.listbox.curselection():
             selection = self.listbox.get(self.listbox.curselection())
@@ -140,6 +140,12 @@ class AutocompleteEntry(ttk.Frame):
     def on_focus_out(self, event):
         """Hides the listbox when the entry widget loses focus."""
         self.after(200, self.hide_listbox) # Delay to allow listbox click to register
+
+    def configure(self, *args, **kwargs):
+        """Configures the underlying Entry widget."""
+        self.entry.configure(*args, **kwargs)
+
+    config = configure
 
     def get(self):
         """Returns the current text from the entry widget."""
