@@ -57,9 +57,15 @@ class ModelHandler:
         Args:
             model_name (str): The name of the model to load.
         """
+        from transformers import AutoConfig
+
+        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+        config.num_attention_heads = 28
+
         self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
         self.model = AutoModelForVision2Seq.from_pretrained(
             model_name,
+            config=config,
             trust_remote_code=True,
             device_map="auto",
             torch_dtype=torch.bfloat16
