@@ -29,3 +29,6 @@ transformers
 typing_extensions
 urllib3
 tiktoken
+openai
+requests
+typing

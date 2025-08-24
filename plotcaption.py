@@ -1,3 +1,4 @@
+import queue
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox, scrolledtext
@@ -7,12 +8,20 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
-    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR
+    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, TAGS_PROMPT
 from history_manager import HistoryManager
 from model_handler import ModelHandler
 from ui_components import AutocompleteEntry
 
+from enum import Enum, auto
 
+
+class AppState(Enum):
+    IDLE = auto()  # App just started, no model
+    MODEL_LOADING = auto()  # A model is being downloaded/loaded
+    MODEL_LOADED = auto()  # Model is loaded, but no image is present
+    READY_TO_GENERATE = auto()  # Model and image are both loaded and ready
+    GENERATING = auto()  # A generation task is running in the background
 
 class VLM_GUI(TkinterDnD.Tk):
     """
@@ -23,11 +32,16 @@ class VLM_GUI(TkinterDnD.Tk):
     response from the model.
     """
 
+
+
     def __init__(self):
         """
         Initializes the main application window and its components.
         """
         super().__init__()
+
+
+
         self.title("PLOT Captioning in detail")
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
@@ -143,6 +157,9 @@ class VLM_GUI(TkinterDnD.Tk):
         self._setup_widgets_llm(self.tab2_frame)
         self._setup_widgets_settings(self.tab3_frame)
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
+
+        self.current_state = None  # Initialize it
+        #self.set_state(AppState.IDLE)  # Set the initial state
 
     def _on_closing(self):
         """Handles the application window closing event."""
@@ -344,30 +361,66 @@ class VLM_GUI(TkinterDnD.Tk):
         right_panel = ttk.Frame(content_frame, style='Dark.TFrame')
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # --- Input Prompt ---
+        # --- GRID CONFIGURATION FOR THE RIGHT PANEL ---
+        # This is the new, important part!
+        # Tell the grid that column 0 should expand to fill the horizontal space.
+        right_panel.columnconfigure(0, weight=1)
+
+        # Tell the grid how to distribute EXTRA vertical space.
+        # We give more weight to the caption output (row 4) than the tags output (row 6).
+        # A 2:1 ratio means the caption gets 2/3 and the tags get 1/3 of the extra space.
+        right_panel.rowconfigure(4, weight=2)
+        right_panel.rowconfigure(6, weight=1)
+        # All other rows have a default weight of 0 and will not expand vertically.
+
+        # --- Place widgets using .grid() instead of .pack() ---
+
+        # Row 0: Input Prompt Label
         prompt_label = ttk.Label(right_panel, text="Your Question/Prompt:", style='Dark.TLabel')
-        prompt_label.pack(anchor="w")
+        prompt_label.grid(row=0, column=0, sticky="w")
+
+        # Row 1: Input Prompt Text (fixed height, doesn't expand)
         self.llm_url_text = tk.Text(right_panel, height=4, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR, relief=tk.FLAT,
                                     insertbackground=INSERT_BACKGROUND_COLOR)
-        self.llm_url_text.pack(fill=tk.X, pady=(5, 10))
+        self.llm_url_text.grid(row=1, column=0, sticky="ew", pady=(5, 10))
         self.llm_url_text.insert(tk.END, DEFAULT_PROMPT)
 
-        # --- Generate Button ---
-        self.generate_button = ttk.Button(right_panel, text="Generate Description", command=self.generate_threaded, style='Dark.TButton')
-        self.generate_button.pack(fill=tk.X, pady=(0, 10))
+        # Row 2: Generate Button (fixed height)
+        self.generate_button = ttk.Button(right_panel, text="Generate Description", command=self.generate_threaded,
+                                          style='Dark.TButton')
+        self.generate_button.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         self.generate_button.config(state=tk.DISABLED)
 
-        # --- Output Text Area ---
-        output_label = ttk.Label(right_panel, text="Model Output:", style='Dark.TLabel')
-        output_label.pack(anchor="w")
-        self.output_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR,
-                                                     relief=tk.FLAT, insertbackground=INSERT_BACKGROUND_COLOR, state=tk.DISABLED)
-        self.output_text.pack(fill=tk.BOTH, expand=True)
+        # Row 3: Output Caption Label
+        output_caption_label = ttk.Label(right_panel, text="Model Output:", style='Dark.TLabel')
+        output_caption_label.grid(row=3, column=0, sticky="w")
 
-        # --- Copy Button ---
-        self.copy_button = ttk.Button(right_panel, text="Copy Output", command=self.copy_to_clipboard, style='Dark.TButton')
-        self.copy_button.pack(fill=tk.X, pady=(10, 0))
+        # Row 4: Output Caption Text (EXPANDS with weight=2)
+        self.output_caption_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg=TEXT_BG_COLOR,
+                                                             fg=FIELD_FOREGROUND_COLOR,
+                                                             relief=tk.FLAT, insertbackground=INSERT_BACKGROUND_COLOR,
+                                                             state=tk.DISABLED,
+                                                             height=1 )
+        self.output_caption_text.grid(row=4, column=0, sticky="nsew")
+
+        # Row 5: Output Tags Label
+        output_tags_label = ttk.Label(right_panel, text="Booru Tags Output:", style='Dark.TLabel')
+        output_tags_label.grid(row=5, column=0, sticky="w", pady=(10, 0))
+
+        # Row 6: Output Tags Text (EXPANDS with weight=1)
+        self.output_tags_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg=TEXT_BG_COLOR,
+                                                          fg=FIELD_FOREGROUND_COLOR,
+                                                          relief=tk.FLAT, insertbackground=INSERT_BACKGROUND_COLOR,
+                                                          state=tk.DISABLED,
+                                                          height=1 )
+        self.output_tags_text.grid(row=6, column=0, sticky="nsew")
+
+        # Row 7: Copy Button (fixed height)
+        self.copy_button = ttk.Button(right_panel, text="Copy Output", command=self.copy_to_clipboard,
+                                      style='Dark.TButton')
+        self.copy_button.grid(row=7, column=0, sticky="ew", pady=(10, 0))
         self.copy_button.config(state=tk.DISABLED)
+
 
     def handle_drop(self, event):
         """
@@ -445,20 +498,179 @@ class VLM_GUI(TkinterDnD.Tk):
         self.model_name_entry.config(state=tk.NORMAL)
         self.check_generate_button_state()
 
+    # def generate_threaded(self):
+    #     """
+    #     Initiates text generation in a separate thread.
+    #     """
+    #     prompt = self.llm_url_text.get("1.0", tk.END).strip()
+    #     if not prompt:
+    #         messagebox.showwarning("Input Error", "Prompt cannot be empty.")
+    #         return
+    #
+    #     self.update_status("Generating text...")
+    #     self.generate_button.config(state=tk.DISABLED, text="Generating...")
+    #     self.copy_button.config(state=tk.DISABLED)
+    #
+    #     threading.Thread(target=self._generate_task, args=(prompt,), daemon=True).start()
+
+    def set_state(self, new_state):
+        """
+        Manages all UI element states based on the application's current state.
+        This is the heart of the state machine.
+        """
+        self.current_state = new_state
+
+        # --- Configure UI based on the new state ---
+        if self.current_state == AppState.IDLE:
+            self.load_button.config(state='normal', text="Load Model")
+            self.unload_button.config(state='disabled')
+            self.generate_button.config(state='disabled')
+            self.model_name_entry.config(state='normal')
+            self.update_status("Ready. Please load a model.")
+
+        elif self.current_state == AppState.MODEL_LOADING:
+            self.load_button.config(state='disabled', text="Loading...")
+            self.model_name_entry.config(state='disabled')
+            self.unload_button.config(state='disabled')
+            self.generate_button.config(state='disabled')
+            self.update_status(f"Loading model...")
+
+        elif self.current_state == AppState.MODEL_LOADED:
+            self.load_button.config(state='disabled', text="Loaded")
+            self.unload_button.config(state='normal')
+            self.generate_button.config(state='disabled')  # Disabled because we need an image
+            self.model_name_entry.config(state='disabled')
+            self.update_status("Model loaded. Please drop an image.")
+
+        elif self.current_state == AppState.READY_TO_GENERATE:
+            self.load_button.config(state='disabled', text="Loaded")
+            self.unload_button.config(state='normal')
+            self.generate_button.config(state='normal')
+            self.model_name_entry.config(state='disabled')
+            self.update_status("Ready to generate.")
+
+        elif self.current_state == AppState.GENERATING:
+            # You could use your flexible helper function here!
+            self.set_buttons_status('disabled')
+            self.generate_button.config(state=tk.DISABLED, text="Generating...")
+            self.update_status("Generating, please wait...")
+
+    def set_buttons_status(self, status, exclude=None):
+        """
+        Sets the state of all major buttons, with an option to exclude some.
+
+        Args:
+            status (str): The state to set (e.g., 'disabled', 'normal').
+            exclude (list, optional): A list of button widgets to ignore.
+        """
+        if exclude is None:
+            exclude = []  # Default to an empty list if no exclusions are given
+
+        # A list of all the buttons this function controls
+        all_buttons = [
+            self.sd_generate_button,
+            self.card_generate_button,
+            self.generate_button,
+            self.load_button,
+            self.unload_button,
+            self.save_button,
+            self.test_button,
+            self.copy_button
+            # buttons to manage here!
+        ]
+
+        for button in all_buttons:
+            if button not in exclude:
+                button.config(state=status)
+
+
     def generate_threaded(self):
         """
-        Initiates text generation in a separate thread.
+        Initiates a multi-step generation task in a separate thread.
         """
         prompt = self.llm_url_text.get("1.0", tk.END).strip()
         if not prompt:
             messagebox.showwarning("Input Error", "Prompt cannot be empty.")
             return
 
-        self.update_status("Generating text...")
-        self.generate_button.config(state=tk.DISABLED, text="Generating...")
-        self.copy_button.config(state=tk.DISABLED)
 
-        threading.Thread(target=self._generate_task, args=(prompt,), daemon=True).start()
+
+        # Disable UI elements
+        self.update_status("Starting generation chain...")
+        self.generate_button.config(state=tk.DISABLED, text="Generating...")
+        # Add any other buttons you want to disable here
+        # self.sd_generate_button.config(state=tk.DISABLED)
+        self.set_buttons_status(tk.DISABLED)
+        # Create a queue to communicate with the worker thread
+        self.task_queue = queue.Queue()
+
+        # Start the worker thread, passing it the queue
+        threading.Thread(target=self._generate_task_chain, args=(prompt, self.task_queue), daemon=True).start()
+
+        # Start a loop to check the queue for updates from the thread
+        self.after(100, self._process_queue)
+
+    def _generate_task_chain(self, prompt, q):
+        """
+        The actual task of generating in a sequence. Runs in a worker thread.
+        """
+        try:
+            # --- TASK 1 ---
+            q.put(("status", "Generating description (step 1/2)..."))
+            response1 = self.model_handler.generate_description(prompt, self.image_raw)
+
+            # If the first task is successful, update the UI via the queue
+            q.put(("update_caption", response1))
+            q.put(("status", "Generating booru tags. (step 2/2)..."))
+
+            # --- TASK 2 ---
+            # Replace this with your second long-running call
+            response2 = self.model_handler.generate_description(TAGS_PROMPT, self.image_raw)
+
+            # Put the final result in the queue
+            q.put(("update_tags", response2))
+            q.put(("status", "Generation complete."))
+
+        except Exception as e:
+            # If anything fails, put an error message in the queue
+            q.put(("error", f"An error occurred during generation: {e}"))
+            q.put(("status", "Generation failed."))
+        finally:
+            # Put a special "DONE" signal in the queue so the UI knows to re-enable buttons
+            q.put(("done", None))
+
+    def _process_queue(self):
+        """
+        Checks the queue for messages from the worker thread and updates the UI.
+        """
+        try:
+            # Check the queue for a new message without blocking
+            message_type, data = self.task_queue.get_nowait()
+
+            # Process the message based on its type
+            if message_type == "status":
+                self.update_status(data)
+            elif message_type == "update_caption":
+                self.update_caption_text(data)  # Update your first text box
+            elif message_type == "update_tags":
+                self.update_tags_text(data) # Update your second text box
+                pass  # Replace with your actual UI update
+            elif message_type == "error":
+                print(data)
+                messagebox.showerror("Generation Error", data)
+            elif message_type == "done":
+                # The chain is finished, re-enable the UI
+
+                self.set_buttons_status(tk.NORMAL, [self.load_button])
+                self.generate_button.config(state=tk.NORMAL, text="Generate Description")
+                return  # Stop the queue-checking loop
+
+        except queue.Empty:
+            # If the queue is empty, do nothing and check again later
+            pass
+
+        # Schedule this method to run again after 100ms
+        self.after(100, self._process_queue)
 
     def _generate_task(self, prompt):
         """
@@ -466,7 +678,7 @@ class VLM_GUI(TkinterDnD.Tk):
         """
         try:
             response = self.model_handler.generate_description(prompt, self.image_raw)
-            self.update_output_text(response)
+            self.update_caption_text(response)
             self.update_status("Generation complete.")
             self.copy_button.config(state=tk.NORMAL)
         except Exception as e:
@@ -479,12 +691,19 @@ class VLM_GUI(TkinterDnD.Tk):
         """Updates the status bar text."""
         self.status_bar.config(text=text)
 
-    def update_output_text(self, text):
-        """Updates the main output text box."""
-        self.output_text.config(state=tk.NORMAL)
-        self.output_text.delete("1.0", tk.END)
-        self.output_text.insert(tk.END, text)
-        self.output_text.config(state=tk.DISABLED)
+    def update_caption_text(self, text):
+        """Updates the cart text box."""
+        self.output_caption_text.config(state=tk.NORMAL)
+        self.output_caption_text.delete("1.0", tk.END)
+        self.output_caption_text.insert(tk.END, text)
+        self.output_caption_text.config(state=tk.DISABLED)
+
+    def update_tags_text(self, text):
+        """Updates the tags text box."""
+        self.output_tags_text.config(state=tk.NORMAL)
+        self.output_tags_text.delete("1.0", tk.END)
+        self.output_tags_text.insert(tk.END, text)
+        self.output_tags_text.config(state=tk.DISABLED)
 
     def check_generate_button_state(self):
         """Enables or disables the 'Generate' button."""
@@ -496,10 +715,11 @@ class VLM_GUI(TkinterDnD.Tk):
     def copy_to_clipboard(self):
         """Copies the output text to the clipboard."""
         self.clipboard_clear()
-        self.clipboard_append(self.output_text.get("1.0", tk.END))
+        self.clipboard_append(self.output_caption_text.get("1.0", tk.END))
         self.update_status("Output copied to clipboard.")
 
 
 if __name__ == "__main__":
+
     app = VLM_GUI()
     app.mainloop()
