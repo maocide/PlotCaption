@@ -44,10 +44,10 @@ Here are grounding tags for better understanding: <tags></tags>.""",
         prompt_tags='Describe the picture in structured json-like format. Include a field called "suggested_booru_tags" and a "description".',
         output_parser=parse_toriigate_json
     ),
-    "A-Different-VLM-3B": VLMProfile(
+    "llama-joycaption-alpha-two-hf-llava": VLMProfile(
         model_id="fancyfeast/llama-joycaption-alpha-two-hf-llava",
-        prompt_caption="Describe the image", # This model might use a simpler prompt!
-        prompt_tags="Output a list of booru tags",    # It might not even support tags!
+        prompt_caption="Write a long detailed description for this image.", #
+        prompt_tags="Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: artist:, copyright:, character:, meta:, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text.",
         output_parser=parse_simple_model_text
     )
     # Add new models here!
