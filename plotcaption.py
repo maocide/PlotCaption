@@ -159,10 +159,13 @@ class VLM_GUI(TkinterDnD.Tk):
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
         self.current_state = None  # Initialize it
-        #self.set_state(AppState.IDLE)  # Set the initial state
+        self.set_state(AppState.IDLE)  # Set the initial state
 
     def _on_closing(self):
-        """Handles the application window closing event."""
+        """
+        Handles the application window closing event.
+        Saves history and closes the application.
+        """
         self.history_manager.save_on_exit()
         self.destroy()
 
@@ -435,7 +438,9 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def load_and_display_image(self):
         """
-        Loads and displays an image thumbnail.
+        Loads an image from the given path, displays it as a thumbnail,
+        and updates the application state. If a model is already loaded,
+        it transitions to the READY_TO_GENERATE state.
         """
         try:
             self.image_raw = Image.open(self.image_path).convert("RGB")
@@ -444,59 +449,55 @@ class VLM_GUI(TkinterDnD.Tk):
             self.image_tk = ImageTk.PhotoImage(display_image)
 
             self.image_label.config(image=self.image_tk, text="")
-            self.update_status("Image loaded successfully.")
-            self.check_generate_button_state()
+
+            if self.current_state == AppState.MODEL_LOADED:
+                self.set_state(AppState.READY_TO_GENERATE)
+            else:
+                # If the model isn't loaded yet, just update the status
+                self.update_status("Image loaded. Now load a model.")
+
         except Exception as e:
             messagebox.showerror("Image Error", f"Failed to load image: {e}")
             self.image_path = None
 
     def load_model_threaded(self):
         """
-        Initiates model loading in a separate thread.
+        Initiates model loading in a separate thread after validating the model name.
+        Transitions the UI to the MODEL_LOADING state.
         """
         model_name = self.model_name_entry.get()
         if not model_name:
             messagebox.showerror("Error", "Model name cannot be empty.")
             return
 
-        self.update_status(f"Loading model: {model_name}...")
-        self.load_button.config(state=tk.DISABLED, text="Loading...")
-        self.model_name_entry.config(state=tk.DISABLED)
-        self.unload_button.config(state=tk.DISABLED)
-
+        self.set_state(AppState.MODEL_LOADING)
         threading.Thread(target=self._load_model_task, args=(model_name,), daemon=True).start()
 
-    def _load_model_task(self, model_name):
+    def _load_model_task(self, model_name: str):
         """
-        The actual task of loading the model.
+        The actual task of loading the model, executed in a separate thread.
+        Updates the state to MODEL_LOADED on success or IDLE on failure.
+
+        Args:
+            model_name (str): The name of the model to load.
         """
         try:
             self.model_handler.load_model(model_name)
-            self.update_status(f"Model loaded successfully on {self.model_handler.device.upper()}.")
-            self.load_button.config(text="Loaded")
-            self.unload_button.config(state=tk.NORMAL)
             self.history_manager.add_model_to_history(model_name)
             self.model_name_entry.set_completions(self.history_manager.get_history())
+            self.set_state(AppState.MODEL_LOADED)
+
         except Exception as e:
             messagebox.showerror("Model Loading Error",
                                  f"Failed to load model: {e}\n\nCheck the model name, your internet connection, and ensure you have enough VRAM/RAM.")
-            self.update_status("Model loading failed.")
-            print("Error message:", e)
-            self.load_button.config(state=tk.NORMAL, text="Load Model")
-            self.model_name_entry.config(state=tk.NORMAL)
-        finally:
-            self.check_generate_button_state()
+            self.set_state(AppState.IDLE)
 
     def unload_model(self):
         """
-        Unloads the model and resets the GUI state.
+        Unloads the model and resets the GUI to the IDLE state.
         """
         self.model_handler.unload_model()
-        self.update_status("Model unloaded.")
-        self.load_button.config(state=tk.NORMAL, text="Load Model")
-        self.unload_button.config(state=tk.DISABLED)
-        self.model_name_entry.config(state=tk.NORMAL)
-        self.check_generate_button_state()
+        self.set_state(AppState.IDLE)
 
     # def generate_threaded(self):
     #     """
@@ -513,46 +514,58 @@ class VLM_GUI(TkinterDnD.Tk):
     #
     #     threading.Thread(target=self._generate_task, args=(prompt,), daemon=True).start()
 
-    def set_state(self, new_state):
+    def set_state(self, new_state: AppState):
         """
         Manages all UI element states based on the application's current state.
-        This is the heart of the state machine.
+        This is the single source of truth for the UI's appearance and interactivity.
+
+        Args:
+            new_state (AppState): The state to transition to.
         """
         self.current_state = new_state
+        # Default states
+        self.load_button.config(state='disabled')
+        self.unload_button.config(state='disabled')
+        self.generate_button.config(state='disabled', text="Generate Description")
+        self.copy_button.config(state='disabled')
+        self.model_name_entry.config(state='disabled')
+        self.set_buttons_status('disabled')
 
         # --- Configure UI based on the new state ---
         if self.current_state == AppState.IDLE:
             self.load_button.config(state='normal', text="Load Model")
-            self.unload_button.config(state='disabled')
-            self.generate_button.config(state='disabled')
             self.model_name_entry.config(state='normal')
             self.update_status("Ready. Please load a model.")
+            self.set_buttons_status('normal',
+                                    [self.generate_button, self.load_button, self.unload_button, self.copy_button])
+
 
         elif self.current_state == AppState.MODEL_LOADING:
-            self.load_button.config(state='disabled', text="Loading...")
-            self.model_name_entry.config(state='disabled')
-            self.unload_button.config(state='disabled')
-            self.generate_button.config(state='disabled')
-            self.update_status(f"Loading model...")
+            self.load_button.config(text="Loading...")
+            self.update_status(f"Loading model: {self.model_name_entry.get()}...")
+
 
         elif self.current_state == AppState.MODEL_LOADED:
-            self.load_button.config(state='disabled', text="Loaded")
+            self.load_button.config(text="Loaded")
             self.unload_button.config(state='normal')
-            self.generate_button.config(state='disabled')  # Disabled because we need an image
             self.model_name_entry.config(state='disabled')
             self.update_status("Model loaded. Please drop an image.")
+            self.set_buttons_status('normal',
+                                    [self.generate_button, self.load_button, self.copy_button])
+
 
         elif self.current_state == AppState.READY_TO_GENERATE:
-            self.load_button.config(state='disabled', text="Loaded")
+            self.load_button.config(text="Loaded")
             self.unload_button.config(state='normal')
             self.generate_button.config(state='normal')
+            self.copy_button.config(state='normal')
             self.model_name_entry.config(state='disabled')
             self.update_status("Ready to generate.")
+            self.set_buttons_status('normal', [self.load_button])
+
 
         elif self.current_state == AppState.GENERATING:
-            # You could use your flexible helper function here!
-            self.set_buttons_status('disabled')
-            self.generate_button.config(state=tk.DISABLED, text="Generating...")
+            self.generate_button.config(text="Generating...")
             self.update_status("Generating, please wait...")
 
     def set_buttons_status(self, status, exclude=None):
@@ -587,20 +600,15 @@ class VLM_GUI(TkinterDnD.Tk):
     def generate_threaded(self):
         """
         Initiates a multi-step generation task in a separate thread.
+        Transitions the UI to the GENERATING state.
         """
         prompt = self.llm_url_text.get("1.0", tk.END).strip()
         if not prompt:
             messagebox.showwarning("Input Error", "Prompt cannot be empty.")
             return
 
+        self.set_state(AppState.GENERATING)
 
-
-        # Disable UI elements
-        self.update_status("Starting generation chain...")
-        self.generate_button.config(state=tk.DISABLED, text="Generating...")
-        # Add any other buttons you want to disable here
-        # self.sd_generate_button.config(state=tk.DISABLED)
-        self.set_buttons_status(tk.DISABLED)
         # Create a queue to communicate with the worker thread
         self.task_queue = queue.Queue()
 
@@ -660,9 +668,7 @@ class VLM_GUI(TkinterDnD.Tk):
                 messagebox.showerror("Generation Error", data)
             elif message_type == "done":
                 # The chain is finished, re-enable the UI
-
-                self.set_buttons_status(tk.NORMAL, [self.load_button])
-                self.generate_button.config(state=tk.NORMAL, text="Generate Description")
+                self.set_state(AppState.READY_TO_GENERATE)
                 return  # Stop the queue-checking loop
 
         except queue.Empty:
@@ -704,13 +710,6 @@ class VLM_GUI(TkinterDnD.Tk):
         self.output_tags_text.delete("1.0", tk.END)
         self.output_tags_text.insert(tk.END, text)
         self.output_tags_text.config(state=tk.DISABLED)
-
-    def check_generate_button_state(self):
-        """Enables or disables the 'Generate' button."""
-        if self.model_handler.model and self.image_path:
-            self.generate_button.config(state=tk.NORMAL)
-        else:
-            self.generate_button.config(state=tk.DISABLED)
 
     def copy_to_clipboard(self):
         """Copies the output text to the clipboard."""
