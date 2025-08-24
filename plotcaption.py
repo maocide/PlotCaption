@@ -8,10 +8,11 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
-    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, TAGS_PROMPT
+    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR
 from history_manager import HistoryManager
 from model_handler import ModelHandler
 from ui_components import AutocompleteEntry
+from vlm_profiles import VLMProfile, VLM_PROFILES
 
 from enum import Enum, auto
 
@@ -53,6 +54,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.history_manager = HistoryManager()
 
         # --- State Variables ---
+        self.loaded_profile: VLMProfile = None
         self.image_path = None
         self.image_raw = None
         self.image_tk = None
@@ -341,14 +343,14 @@ class VLM_GUI(TkinterDnD.Tk):
         model_label = ttk.Label(top_frame, text="Model:", style='Dark.TLabel')
         model_label.pack(side=tk.LEFT)
 
-        model_history = self.history_manager.get_history()
+        model_list = list(VLM_PROFILES.keys())
         self.model_name_entry = AutocompleteEntry(
             top_frame,
-            completions=model_history,
+            completions=model_list,
             width=50
         )
         self.model_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
-        self.model_name_entry.insert(0, model_history[0] if model_history else "")
+        self.model_name_entry.insert(0, model_list[0] if model_list else "")
 
         # --- Main Content Frame (Image and Text) ---
         content_frame = ttk.Frame(main_frame, style='Dark.TFrame')
@@ -470,22 +472,31 @@ class VLM_GUI(TkinterDnD.Tk):
             messagebox.showerror("Error", "Model name cannot be empty.")
             return
 
-        self.set_state(AppState.MODEL_LOADING)
-        threading.Thread(target=self._load_model_task, args=(model_name,), daemon=True).start()
+        self.loaded_profile = VLM_PROFILES.get(model_name)
+        if not self.loaded_profile:
+            messagebox.showerror("Profile Error", f"No VLM profile defined for '{model_name}'.")
+            return
 
-    def _load_model_task(self, model_name: str):
+        self.set_state(AppState.MODEL_LOADING)
+        threading.Thread(target=self._load_model_task, args=(self.loaded_profile.model_id,), daemon=True).start()
+
+    def _load_model_task(self, model_id: str):
         """
         The actual task of loading the model, executed in a separate thread.
         Updates the state to MODEL_LOADED on success, or READY_TO_GENERATE
         if an image is already present. Updates to IDLE on failure.
 
         Args:
-            model_name (str): The name of the model to load.
+            model_id (str): The Hugging Face ID of the model to load.
         """
         try:
-            self.model_handler.load_model(model_name)
-            self.history_manager.add_model_to_history(model_name)
-            self.model_name_entry.set_completions(self.history_manager.get_history())
+            self.model_handler.load_model(model_id)
+            # The history manager is no longer the source of truth for VLM models.
+            # The VLM_PROFILES dictionary is. We leave the history logic for now
+            # as it might be used by other parts of the application, but we don't
+            # add VLM models to it anymore.
+            # self.history_manager.add_model_to_history(model_id)
+            # self.model_name_entry.set_completions(self.history_manager.get_history())
 
             if self.image_path:
                 self.set_state(AppState.READY_TO_GENERATE)
@@ -607,10 +618,9 @@ class VLM_GUI(TkinterDnD.Tk):
         Initiates a multi-step generation task in a separate thread.
         Transitions the UI to the GENERATING state.
         """
-        prompt = self.llm_url_text.get("1.0", tk.END).strip()
-        if not prompt:
-            messagebox.showwarning("Input Error", "Prompt cannot be empty.")
-            return
+        # The user-provided prompt from the textbox is currently not used
+        # by the profile-based generation logic. This might be a future feature.
+        # For now, we proceed without checking it.
 
         self.set_state(AppState.GENERATING)
 
@@ -618,30 +628,42 @@ class VLM_GUI(TkinterDnD.Tk):
         self.task_queue = queue.Queue()
 
         # Start the worker thread, passing it the queue
-        threading.Thread(target=self._generate_task_chain, args=(prompt, self.task_queue), daemon=True).start()
+        # The 'prompt' argument is removed as it's no longer used.
+        threading.Thread(target=self._generate_task_chain, args=(self.task_queue,), daemon=True).start()
 
         # Start a loop to check the queue for updates from the thread
         self.after(100, self._process_queue)
 
-    def _generate_task_chain(self, prompt, q):
+    def _generate_task_chain(self, q):
         """
         The actual task of generating in a sequence. Runs in a worker thread.
         """
+        if not self.loaded_profile:
+            q.put(("error", "No model profile loaded. Cannot generate."))
+            q.put(("status", "Generation failed."))
+            q.put(("done", None))
+            return
         try:
             # --- TASK 1 ---
             q.put(("status", "Generating description (step 1/2)..."))
-            response1 = self.model_handler.generate_description(prompt, self.image_raw)
+            caption_prompt = self.loaded_profile.prompt_caption
+            raw_caption_output = self.model_handler.generate_description(caption_prompt, self.image_raw)
 
             # If the first task is successful, update the UI via the queue
-            q.put(("update_caption", response1))
+            q.put(("update_caption", raw_caption_output))
             q.put(("status", "Generating booru tags. (step 2/2)..."))
 
             # --- TASK 2 ---
-            # Replace this with your second long-running call
-            response2 = self.model_handler.generate_description(TAGS_PROMPT, self.image_raw)
+            tags_prompt = self.loaded_profile.prompt_tags
+            raw_tags_output = self.model_handler.generate_description(tags_prompt, self.image_raw)
+
+            # --- TASK 3 ---
+            q.put(("status", "Parsing model output..."))
+            parsed_data = self.loaded_profile.output_parser(raw_tags_output)
 
             # Put the final result in the queue
-            q.put(("update_tags", response2))
+            q.put(("update_caption", parsed_data.get("caption", "")))
+            q.put(("update_tags", parsed_data.get("tags", "")))
             q.put(("status", "Generation complete."))
 
         except Exception as e:
