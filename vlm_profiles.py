@@ -38,7 +38,9 @@ def parse_simple_model_text(raw_output: str) -> Dict[str, str]:
 VLM_PROFILES = {
     "ToriiGate-v0.4-7B": VLMProfile(
         model_id="Minthy/ToriiGate-v0.4-7B",
-        prompt_caption="Please provide a long, detailed description of the following image.",
+        prompt_caption="""Please provide a long, detailed description of the following image.
+The character(s) in the image is/are: <char></char>.
+Here are grounding tags for better understanding: <tags></tags>.""",
         prompt_tags='Describe the picture in structured json-like format. Include a field called "suggested_booru_tags" and a "description".',
         output_parser=parse_toriigate_json
     ),

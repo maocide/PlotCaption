@@ -475,7 +475,12 @@ class VLM_GUI(TkinterDnD.Tk):
         self.loaded_profile = VLM_PROFILES.get(model_name)
         if not self.loaded_profile:
             messagebox.showerror("Profile Error", f"No VLM profile defined for '{model_name}'.")
+            self.llm_url_text.delete("1.0", tk.END)
             return
+
+        # Update the prompt text box with the prompt from the selected profile
+        self.llm_url_text.delete("1.0", tk.END)
+        self.llm_url_text.insert(tk.END, self.loaded_profile.prompt_caption)
 
         self.set_state(AppState.MODEL_LOADING)
         threading.Thread(target=self._load_model_task, args=(self.loaded_profile.model_id,), daemon=True).start()
@@ -618,9 +623,10 @@ class VLM_GUI(TkinterDnD.Tk):
         Initiates a multi-step generation task in a separate thread.
         Transitions the UI to the GENERATING state.
         """
-        # The user-provided prompt from the textbox is currently not used
-        # by the profile-based generation logic. This might be a future feature.
-        # For now, we proceed without checking it.
+        prompt = self.llm_url_text.get("1.0", tk.END).strip()
+        if not prompt:
+            messagebox.showwarning("Input Error", "Prompt cannot be empty.")
+            return
 
         self.set_state(AppState.GENERATING)
 
@@ -628,13 +634,12 @@ class VLM_GUI(TkinterDnD.Tk):
         self.task_queue = queue.Queue()
 
         # Start the worker thread, passing it the queue
-        # The 'prompt' argument is removed as it's no longer used.
-        threading.Thread(target=self._generate_task_chain, args=(self.task_queue,), daemon=True).start()
+        threading.Thread(target=self._generate_task_chain, args=(prompt, self.task_queue), daemon=True).start()
 
         # Start a loop to check the queue for updates from the thread
         self.after(100, self._process_queue)
 
-    def _generate_task_chain(self, q):
+    def _generate_task_chain(self, prompt, q):
         """
         The actual task of generating in a sequence. Runs in a worker thread.
         """
@@ -645,9 +650,9 @@ class VLM_GUI(TkinterDnD.Tk):
             return
         try:
             # --- TASK 1 ---
+            # The user can now edit the prompt, so we use the text from the textbox.
             q.put(("status", "Generating description (step 1/2)..."))
-            caption_prompt = self.loaded_profile.prompt_caption
-            raw_caption_output = self.model_handler.generate_description(caption_prompt, self.image_raw)
+            raw_caption_output = self.model_handler.generate_description(prompt, self.image_raw)
 
             # If the first task is successful, update the UI via the queue
             q.put(("update_caption", raw_caption_output))
