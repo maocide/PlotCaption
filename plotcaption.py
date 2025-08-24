@@ -476,7 +476,8 @@ class VLM_GUI(TkinterDnD.Tk):
     def _load_model_task(self, model_name: str):
         """
         The actual task of loading the model, executed in a separate thread.
-        Updates the state to MODEL_LOADED on success or IDLE on failure.
+        Updates the state to MODEL_LOADED on success, or READY_TO_GENERATE
+        if an image is already present. Updates to IDLE on failure.
 
         Args:
             model_name (str): The name of the model to load.
@@ -485,7 +486,11 @@ class VLM_GUI(TkinterDnD.Tk):
             self.model_handler.load_model(model_name)
             self.history_manager.add_model_to_history(model_name)
             self.model_name_entry.set_completions(self.history_manager.get_history())
-            self.set_state(AppState.MODEL_LOADED)
+
+            if self.image_path:
+                self.set_state(AppState.READY_TO_GENERATE)
+            else:
+                self.set_state(AppState.MODEL_LOADED)
 
         except Exception as e:
             messagebox.showerror("Model Loading Error",
