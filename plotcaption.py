@@ -385,10 +385,10 @@ class VLM_GUI(TkinterDnD.Tk):
         prompt_label.grid(row=0, column=0, sticky="w")
 
         # Row 1: Input Prompt Text (fixed height, doesn't expand)
-        self.llm_url_text = tk.Text(right_panel, height=4, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR, relief=tk.FLAT,
-                                    insertbackground=INSERT_BACKGROUND_COLOR)
-        self.llm_url_text.grid(row=1, column=0, sticky="ew", pady=(5, 10))
-        self.llm_url_text.insert(tk.END, DEFAULT_PROMPT)
+        self.caption_prompt = tk.Text(right_panel, height=4, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR, relief=tk.FLAT,
+                                      insertbackground=INSERT_BACKGROUND_COLOR)
+        self.caption_prompt.grid(row=1, column=0, sticky="ew", pady=(5, 10))
+        self.caption_prompt.insert(tk.END, DEFAULT_PROMPT)
 
         # Row 2: Generate Button (fixed height)
         self.generate_button = ttk.Button(right_panel, text="Generate Description", command=self.generate_threaded,
@@ -475,12 +475,12 @@ class VLM_GUI(TkinterDnD.Tk):
         self.loaded_profile = VLM_PROFILES.get(model_name)
         if not self.loaded_profile:
             messagebox.showerror("Profile Error", f"No VLM profile defined for '{model_name}'.")
-            self.llm_url_text.delete("1.0", tk.END)
+            self.caption_prompt.delete("1.0", tk.END)
             return
 
         # Update the prompt text box with the prompt from the selected profile
-        self.llm_url_text.delete("1.0", tk.END)
-        self.llm_url_text.insert(tk.END, self.loaded_profile.prompt_caption)
+        self.caption_prompt.delete("1.0", tk.END)
+        self.caption_prompt.insert(tk.END, self.loaded_profile.prompt_caption)
 
         self.set_state(AppState.MODEL_LOADING)
         threading.Thread(target=self._load_model_task, args=(self.loaded_profile.model_id,), daemon=True).start()
@@ -623,7 +623,7 @@ class VLM_GUI(TkinterDnD.Tk):
         Initiates a multi-step generation task in a separate thread.
         Transitions the UI to the GENERATING state.
         """
-        prompt = self.llm_url_text.get("1.0", tk.END).strip()
+        prompt = self.caption_prompt.get("1.0", tk.END).strip()
         if not prompt:
             messagebox.showwarning("Input Error", "Prompt cannot be empty.")
             return
