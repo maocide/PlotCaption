@@ -43,9 +43,9 @@ VLM_PROFILES = {
         output_parser=parse_toriigate_json
     ),
     "A-Different-VLM-3B": VLMProfile(
-        model_id="somebody/a-different-vlm-3b",
-        prompt_caption="Image:", # This model might use a simpler prompt!
-        prompt_tags="Tags:",    # It might not even support tags!
+        model_id="fancyfeast/llama-joycaption-alpha-two-hf-llava",
+        prompt_caption="Describe the image", # This model might use a simpler prompt!
+        prompt_tags="Output a list of booru tags",    # It might not even support tags!
         output_parser=parse_simple_model_text
     )
     # Add new models here!
