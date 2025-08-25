@@ -101,6 +101,21 @@ class VLM_GUI(TkinterDnD.Tk):
                              selectbackground=SELECT_BACKGROUND_COLOR  # Color of selected text (optional but good)
                              )
 
+        # Configure the Combobox
+        self.style.configure('Dark.TCombobox',
+                             fieldbackground=FIELD_BACK_COLOR,
+                             background=FIELD_BORDER_AREA_COLOR,
+                             foreground=FIELD_FOREGROUND_COLOR,
+                             arrowcolor='white',
+                             bordercolor=FIELD_BORDER_AREA_COLOR,
+                             selectbackground=SELECT_BACKGROUND_COLOR,
+                             padding=5)
+        self.style.map('Dark.TCombobox',
+                       fieldbackground=[('readonly', FIELD_BACK_COLOR)],
+                       foreground=[('readonly', FIELD_FOREGROUND_COLOR)],
+                       selectbackground=[('readonly', SELECT_BACKGROUND_COLOR)],
+                       selectforeground=[('readonly', FIELD_FOREGROUND_COLOR)])
+
         # Configure the Tab buttons themselves
         self.style.configure('TNotebook.Tab',
                              foreground=FIELD_FOREGROUND_COLOR,
@@ -321,6 +336,23 @@ class VLM_GUI(TkinterDnD.Tk):
 
 
 
+    def _on_model_selected(self, event=None):
+        """
+        Handles the event when a new model is selected from the Combobox.
+        Loads the corresponding profile and updates the UI.
+        """
+        model_name = self.model_selection_combo.get()
+        self.loaded_profile = VLM_PROFILES.get(model_name)
+
+        if self.loaded_profile:
+            # Update the prompt text box with the prompt from the selected profile
+            self.caption_prompt.delete("1.0", tk.END)
+            self.caption_prompt.insert(tk.END, self.loaded_profile.prompt_caption)
+        else:
+            # This case should ideally not happen with a readonly combobox
+            messagebox.showerror("Profile Error", f"No VLM profile defined for '{model_name}'.")
+            self.caption_prompt.delete("1.0", tk.END)
+
     def _setup_widgets_vlm(self, parent_element):
         """Creates and arranges all the VLM tab widgets."""
         # In your _setup_widgets method:
@@ -343,14 +375,21 @@ class VLM_GUI(TkinterDnD.Tk):
         model_label = ttk.Label(top_frame, text="Model:", style='Dark.TLabel')
         model_label.pack(side=tk.LEFT)
 
-        model_list = list(VLM_PROFILES.keys())
-        self.model_name_entry = AutocompleteEntry(
+        self.model_selection_combo = ttk.Combobox(
             top_frame,
-            completions=model_list,
-            width=50
+            values=list(VLM_PROFILES.keys()),
+            state='readonly',
+            style='Dark.TCombobox',
+            width=48
         )
-        self.model_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
-        self.model_name_entry.insert(0, model_list[0] if model_list else "")
+        self.model_selection_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
+
+        # Set initial value and trigger the event handler to populate the prompt
+        if list(VLM_PROFILES.keys()):
+            self.model_selection_combo.current(0)
+            self._on_model_selected()
+
+        self.model_selection_combo.bind("<<ComboboxSelected>>", self._on_model_selected)
 
         # --- Main Content Frame (Image and Text) ---
         content_frame = ttk.Frame(main_frame, style='Dark.TFrame')
@@ -420,11 +459,21 @@ class VLM_GUI(TkinterDnD.Tk):
                                                           height=1 )
         self.output_tags_text.grid(row=6, column=0, sticky="nsew")
 
-        # Row 7: Copy Button (fixed height)
-        self.copy_button = ttk.Button(right_panel, text="Copy Output", command=self.copy_to_clipboard,
+        # Row 7: Button Container
+        button_container = ttk.Frame(right_panel, style='Dark.TFrame')
+        button_container.grid(row=7, column=0, sticky="ew", pady=(10, 0))
+
+        # --- Move the existing copy_button ---
+        self.copy_button = ttk.Button(button_container, text="Copy Output", command=self.copy_to_clipboard,
                                       style='Dark.TButton')
-        self.copy_button.grid(row=7, column=0, sticky="ew", pady=(10, 0))
+        self.copy_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
         self.copy_button.config(state=tk.DISABLED)
+
+        # --- Create the new copy_tags_button ---
+        self.copy_tags_button = ttk.Button(button_container, text="Copy Tags", command=self.copy_tags_to_clipboard,
+                                           style='Dark.TButton')
+        self.copy_tags_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+        self.copy_tags_button.config(state=tk.DISABLED)
 
 
     def handle_drop(self, event):
@@ -464,23 +513,19 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def load_model_threaded(self):
         """
-        Initiates model loading in a separate thread after validating the model name.
+        Initiates model loading in a separate thread. The model to be loaded
+        is determined by the current selection in the combobox.
         Transitions the UI to the MODEL_LOADING state.
         """
-        model_name = self.model_name_entry.get()
+        model_name = self.model_selection_combo.get()
         if not model_name:
-            messagebox.showerror("Error", "Model name cannot be empty.")
+            messagebox.showerror("Error", "No model selected.")
             return
 
-        self.loaded_profile = VLM_PROFILES.get(model_name)
+        # The profile is already loaded by _on_model_selected, so we just use it.
         if not self.loaded_profile:
-            messagebox.showerror("Profile Error", f"No VLM profile defined for '{model_name}'.")
-            self.caption_prompt.delete("1.0", tk.END)
+            messagebox.showerror("Profile Error", f"Could not find a loaded profile for '{model_name}'.")
             return
-
-        # Update the prompt text box with the prompt from the selected profile
-        self.caption_prompt.delete("1.0", tk.END)
-        self.caption_prompt.insert(tk.END, self.loaded_profile.prompt_caption)
 
         self.set_state(AppState.MODEL_LOADING)
         threading.Thread(target=self._load_model_task, args=(self.loaded_profile.model_id,), daemon=True).start()
@@ -552,13 +597,14 @@ class VLM_GUI(TkinterDnD.Tk):
         self.unload_button.config(state='disabled')
         self.generate_button.config(state='disabled', text="Generate Description")
         self.copy_button.config(state='disabled')
-        self.model_name_entry.config(state='disabled')
+        self.copy_tags_button.config(state='disabled')
+        self.model_selection_combo.config(state='disabled')
         self.set_buttons_status('disabled')
 
         # --- Configure UI based on the new state ---
         if self.current_state == AppState.IDLE:
             self.load_button.config(state='normal', text="Load Model")
-            self.model_name_entry.config(state='normal')
+            self.model_selection_combo.config(state='readonly')
             self.update_status("Ready. Please load a model.")
             self.set_buttons_status('normal',
                                     [self.generate_button, self.load_button, self.unload_button, self.copy_button])
@@ -566,13 +612,13 @@ class VLM_GUI(TkinterDnD.Tk):
 
         elif self.current_state == AppState.MODEL_LOADING:
             self.load_button.config(text="Loading...")
-            self.update_status(f"Loading model: {self.model_name_entry.get()}...")
+            self.update_status(f"Loading model: {self.model_selection_combo.get()}...")
 
 
         elif self.current_state == AppState.MODEL_LOADED:
             self.load_button.config(text="Loaded")
             self.unload_button.config(state='normal')
-            self.model_name_entry.config(state='disabled')
+            self.model_selection_combo.config(state='disabled')
             self.update_status("Model loaded. Please drop an image.")
             self.set_buttons_status('normal',
                                     [self.generate_button, self.load_button, self.copy_button])
@@ -583,7 +629,8 @@ class VLM_GUI(TkinterDnD.Tk):
             self.unload_button.config(state='normal')
             self.generate_button.config(state='normal')
             self.copy_button.config(state='normal')
-            self.model_name_entry.config(state='disabled')
+            self.copy_tags_button.config(state='normal')
+            self.model_selection_combo.config(state='disabled')
             self.update_status("Ready to generate.")
             self.set_buttons_status('normal', [self.load_button])
 
@@ -612,7 +659,8 @@ class VLM_GUI(TkinterDnD.Tk):
             self.unload_button,
             self.save_button,
             self.test_button,
-            self.copy_button
+            self.copy_button,
+            self.copy_tags_button
             # buttons to manage here!
         ]
 
@@ -750,6 +798,12 @@ class VLM_GUI(TkinterDnD.Tk):
         self.clipboard_clear()
         self.clipboard_append(self.output_caption_text.get("1.0", tk.END))
         self.update_status("Output copied to clipboard.")
+
+    def copy_tags_to_clipboard(self):
+        """Copies the tags output text to the clipboard."""
+        self.clipboard_clear()
+        self.clipboard_append(self.output_tags_text.get("1.0", tk.END))
+        self.update_status("Tags copied to clipboard.")
 
 
 if __name__ == "__main__":
