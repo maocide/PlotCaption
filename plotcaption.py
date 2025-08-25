@@ -667,8 +667,7 @@ class VLM_GUI(TkinterDnD.Tk):
             parsed_data = self.loaded_profile.output_parser(raw_tags_output)
 
             # Put the final result in the queue
-            q.put(("update_caption", parsed_data.get("caption", "")))
-            q.put(("update_tags", parsed_data.get("tags", "")))
+            q.put(("update_tags", parsed_data.get("output", "")))
             q.put(("status", "Generation complete."))
 
         except Exception as e:

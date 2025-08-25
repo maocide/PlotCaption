@@ -19,6 +19,7 @@ class VLMProfile:
 def parse_toriigate_json(raw_output: str) -> Dict[str, str]:
     """Parses the specific JSON output from ToriiGate."""
     try:
+        return {"output": raw_output}
         data = json.loads(raw_output)
         # Assumes the JSON has a field called "suggested_booru_tags"
         tags = data.get("suggested_booru_tags", "Error: Tags not found in JSON.")
@@ -30,7 +31,7 @@ def parse_toriigate_json(raw_output: str) -> Dict[str, str]:
 
 def parse_simple_model_text(raw_output: str) -> Dict[str, str]:
     """Parses a simple model that just outputs a caption and nothing else."""
-    return {"caption": raw_output, "tags": "N/A"}
+    return {"output": raw_output}
 
 
 # --- Create the Profile Database ---
