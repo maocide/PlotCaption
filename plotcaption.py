@@ -606,8 +606,9 @@ class VLM_GUI(TkinterDnD.Tk):
             self.load_button.config(state='normal', text="Load Model")
             self.model_selection_combo.config(state='readonly')
             self.update_status("Ready. Please load a model.")
+            # Exclude buttons that should be disabled. The rest will be enabled.
             self.set_buttons_status('normal',
-                                    [self.generate_button, self.load_button, self.unload_button, self.copy_button])
+                                    [self.generate_button, self.load_button, self.unload_button])
 
 
         elif self.current_state == AppState.MODEL_LOADING:
