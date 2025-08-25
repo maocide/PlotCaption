@@ -495,7 +495,9 @@ class VLM_GUI(TkinterDnD.Tk):
             model_id (str): The Hugging Face ID of the model to load.
         """
         try:
-            self.model_handler.load_model(model_id)
+            print(model_id)
+            print("Loading model thread...")
+            self.model_handler.load_model(self.loaded_profile)
             # The history manager is no longer the source of truth for VLM models.
             # The VLM_PROFILES dictionary is. We leave the history logic for now
             # as it might be used by other parts of the application, but we don't
@@ -509,6 +511,7 @@ class VLM_GUI(TkinterDnD.Tk):
                 self.set_state(AppState.MODEL_LOADED)
 
         except Exception as e:
+            print(e)
             messagebox.showerror("Model Loading Error",
                                  f"Failed to load model: {e}\n\nCheck the model name, your internet connection, and ensure you have enough VRAM/RAM.")
             self.set_state(AppState.IDLE)
@@ -649,27 +652,27 @@ class VLM_GUI(TkinterDnD.Tk):
             q.put(("done", None))
             return
         try:
-            # --- TASK 1 ---
-            # The user can now edit the prompt, so we use the text from the textbox.
-            q.put(("status", "Generating description (step 1/2)..."))
-            raw_caption_output = self.model_handler.generate_description(prompt, self.image_raw)
 
-            # If the first task is successful, update the UI via the queue
-            q.put(("update_caption", raw_caption_output))
+            # --- TASK 1: Generate and Parse Caption ---
+            q.put(("status", "Generating description (step 1/2)..."))
+            raw_caption_output = self.model_handler.generate_description(self.loaded_profile, prompt, self.image_raw)
+
+            # Use the caption_parser here!
+            parsed_caption_data = self.loaded_profile.caption_parser(raw_caption_output)
+            q.put(("update_caption", parsed_caption_data.get("output", "")))
+
             q.put(("status", "Generating booru tags. (step 2/2)..."))
 
-            # --- TASK 2 ---
+            # --- TASK 2: Generate and Parse Tags ---
             tags_prompt = self.loaded_profile.prompt_tags
-            raw_tags_output = self.model_handler.generate_description(tags_prompt, self.image_raw)
+            raw_tags_output = self.model_handler.generate_description(self.loaded_profile, tags_prompt, self.image_raw)
 
-            # --- TASK 3 ---
-            q.put(("status", "Parsing model output..."))
-            parsed_data = self.loaded_profile.output_parser(raw_tags_output)
+            # Use the tags_parser here!
+            parsed_tags_data = self.loaded_profile.tags_parser(raw_tags_output)
+            q.put(("update_tags",
+                   parsed_tags_data.get("output", "")))
 
-            # Put the final result in the queue
-            q.put(("update_tags", parsed_data.get("output", "")))
             q.put(("status", "Generation complete."))
-
         except Exception as e:
             # If anything fails, put an error message in the queue
             q.put(("error", f"An error occurred during generation: {e}"))
