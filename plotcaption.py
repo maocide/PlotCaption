@@ -384,10 +384,9 @@ class VLM_GUI(TkinterDnD.Tk):
         )
         self.model_selection_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
 
-        # Set initial value and trigger the event handler to populate the prompt
+        # Set initial value
         if list(VLM_PROFILES.keys()):
             self.model_selection_combo.current(0)
-            self._on_model_selected()
 
         self.model_selection_combo.bind("<<ComboboxSelected>>", self._on_model_selected)
 
@@ -427,7 +426,8 @@ class VLM_GUI(TkinterDnD.Tk):
         self.caption_prompt = tk.Text(right_panel, height=4, bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR, relief=tk.FLAT,
                                       insertbackground=INSERT_BACKGROUND_COLOR)
         self.caption_prompt.grid(row=1, column=0, sticky="ew", pady=(5, 10))
-        self.caption_prompt.insert(tk.END, DEFAULT_PROMPT)
+        # self.caption_prompt.insert(tk.END, DEFAULT_PROMPT) # This is now handled by _on_model_selected
+        self._on_model_selected() # Call this now that caption_prompt exists
 
         # Row 2: Generate Button (fixed height)
         self.generate_button = ttk.Button(right_panel, text="Generate Description", command=self.generate_threaded,
