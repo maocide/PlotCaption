@@ -535,6 +535,8 @@ class VLM_GUI(TkinterDnD.Tk):
             character_to_analyze="Character from character card, Main Character"
         )
 
+        # Enable the text box to modify it
+        self.sd_text_box.config(state=tk.NORMAL)
         # 2. Clear existing content
         self.sd_text_box.delete("1.0", tk.END)
 
