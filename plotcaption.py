@@ -26,7 +26,8 @@ class AppState(Enum):
     MODEL_LOADED = auto()  # Model is loaded, but no image is present
     READY_TO_GENERATE = auto()  # Model and image are both loaded and ready
     GENERATING = auto()  # A generation task is running in the background
-    READY_FOR_PROMPT_GENERATION = auto()
+    READY_FOR_CARD_GENERATION = auto()
+    READY_FOR_SD_GENERATION = auto()
     API_GENERATING = auto()
 
 class VLM_GUI(TkinterDnD.Tk):
@@ -298,7 +299,8 @@ class VLM_GUI(TkinterDnD.Tk):
             args=(
                 self.card_text_box,
                 self.card_output_text_box,
-                self.task_queue
+                self.task_queue,
+                'card'
             ),
             daemon=True
         ).start()
@@ -315,13 +317,14 @@ class VLM_GUI(TkinterDnD.Tk):
             args=(
                 self.sd_text_box,
                 self.sd_output_text_box,
-                self.task_queue
+                self.task_queue,
+                'sd'
             ),
             daemon=True
         ).start()
         self.after(100, self._process_api_queue)
 
-    def _api_call_task(self, input_widget, output_widget, q):
+    def _api_call_task(self, input_widget, output_widget, q, task_type):
         """
         A generic worker thread for making API calls.
         """
@@ -334,7 +337,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
             if not all([api_key, base_url, model_name, prompt]):
                 q.put(("error", "API credentials, model, and prompt cannot be empty."))
-                q.put(("done", None))
+                q.put(("done", task_type))
                 return
 
             # 2. Make the API call
@@ -356,7 +359,7 @@ class VLM_GUI(TkinterDnD.Tk):
         except Exception as e:
             q.put(("error", f"An error occurred during the API call: {e}"))
         finally:
-            q.put(("done", None))
+            q.put(("done", task_type))
 
     def _process_api_queue(self):
         """
@@ -376,8 +379,17 @@ class VLM_GUI(TkinterDnD.Tk):
             elif message_type == "error":
                 messagebox.showerror("API Error", data)
             elif message_type == "done":
-                self.set_state(AppState.READY_FOR_PROMPT_GENERATION)
-                return
+                task_type = data  # This will be 'card' or 'sd'
+                if task_type == 'card':
+                    # The card is finished, NOW we populate the SD prompt
+                    final_caption = self.output_caption_text.get("1.0", tk.END).strip()
+                    final_tags = self.output_tags_text.get("1.0", tk.END).strip()
+                    final_card = self.card_output_text_box.get("1.0", tk.END).strip()
+                    self._populate_generate_SD(final_caption, final_tags, final_card)
+                    self.set_state(AppState.READY_FOR_SD_GENERATION)
+                else:  # The SD prompt finished
+                    self.set_state(AppState.READY_FOR_SD_GENERATION)
+                return  # Stop the queue-checking loop
 
         except queue.Empty:
             pass
@@ -519,7 +531,7 @@ class VLM_GUI(TkinterDnD.Tk):
         sd_prompt = generate_stable_diffusion_prompt(
             caption=caption,
             tags=tags,
-            character_card="Main Character",
+            character_card=character_card,
             character_to_analyze="Character from character card, Main Character"
         )
 
@@ -826,15 +838,25 @@ class VLM_GUI(TkinterDnD.Tk):
             self.model_selection_combo.config(state='disabled')
             self.update_status("Generating, please wait...")
 
-        elif self.current_state == AppState.READY_FOR_PROMPT_GENERATION:
-            self.card_generate_button.config(state='normal')
-            self.sd_generate_button.config(state='normal')
+        elif self.current_state == AppState.READY_FOR_CARD_GENERATION:
             self.card_text_box.config(state='normal')
-            self.sd_text_box.config(state='normal')
+            self.card_generate_button.config(state='normal')
+            self.sd_text_box.config(state='disabled')
+            self.sd_generate_button.config(state='disabled')
             self.copy_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
-            self.update_status("Prompts generated. Ready for API call.")
+            self.update_status("Character Card prompt ready. Click 'Generate Card'.")
+
+        elif self.current_state == AppState.READY_FOR_SD_GENERATION:
+            self.card_text_box.config(state='normal')
+            self.card_generate_button.config(state='normal')
+            self.sd_text_box.config(state='normal')
+            self.sd_generate_button.config(state='normal')
+            self.copy_button.config(state='normal')
+            self.copy_tags_button.config(state='normal')
+            self.unload_button.config(state='normal')
+            self.update_status("Character Card generated. SD prompt is ready.")
 
         elif self.current_state == AppState.API_GENERATING:
             self.card_generate_button.config(state='disabled')
@@ -930,7 +952,7 @@ class VLM_GUI(TkinterDnD.Tk):
                 final_caption = self.output_caption_text.get("1.0", tk.END).strip()
                 final_tags = self.output_tags_text.get("1.0", tk.END).strip()
                 # Set the state first to enable the text boxes
-                self.set_state(AppState.READY_FOR_PROMPT_GENERATION)
+                self.set_state(AppState.READY_FOR_CARD_GENERATION)
                 # Now populate them
                 self._populate_generate_card(final_caption, final_tags)
                 return  # Stop the queue-checking loop
