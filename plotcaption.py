@@ -288,10 +288,6 @@ class VLM_GUI(TkinterDnD.Tk):
         self.sd_generate_button = ttk.Button(main_frame, text="Generate SD", command=self._generate_sd_prompt_threaded, style='Dark.TButton')
         self.sd_generate_button.grid(row=2, column=1, sticky="ns", pady=5)
 
-        # Add some example text to show the scrollbar
-        for i in range(50):
-            self.card_text_box.insert(tk.END, f"This is line number {i + 1}\\n")
-            self.sd_text_box.insert(tk.END, f"This is line number {i + 1}\\n")
 
     def _generate_card_threaded(self):
         """
@@ -883,10 +879,13 @@ class VLM_GUI(TkinterDnD.Tk):
                 messagebox.showerror("Generation Error", data)
             elif message_type == "done":
                 # The chain is finished, populate the next tab
+                # The chain is finished, populate the next tab
                 final_caption = self.output_caption_text.get("1.0", tk.END).strip()
                 final_tags = self.output_tags_text.get("1.0", tk.END).strip()
-                self._populate_generate_tab(final_caption, final_tags)
+                # Set the state first to enable the text boxes
                 self.set_state(AppState.READY_FOR_PROMPT_GENERATION)
+                # Now populate them
+                self._populate_generate_tab(final_caption, final_tags)
                 return  # Stop the queue-checking loop
 
         except queue.Empty:
