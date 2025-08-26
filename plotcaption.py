@@ -439,7 +439,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.save_button = ttk.Button(button_frame, text="Save", command=self._save_api_settings, style='Dark.TButton')
         self.save_button.pack(side=tk.LEFT, padx=(0,5))
 
-        self.test_button = ttk.Button(button_frame, text="Test", command=None, style='Dark.TButton')
+        self.test_button = ttk.Button(button_frame, text="Test", command=self._test_api_connection_threaded, style='Dark.TButton')
         self.test_button.pack(side=tk.LEFT)
 
     def _save_api_settings(self):
@@ -455,6 +455,45 @@ class VLM_GUI(TkinterDnD.Tk):
         else:
             self.update_status("Error: Failed to save API settings.")
             messagebox.showerror("Error", "Could not save settings. Check console for details.")
+
+    def _test_api_connection_threaded(self):
+        """
+        Tests the API connection in a separate thread.
+        """
+        threading.Thread(target=self._test_api_task, daemon=True).start()
+
+    def _test_api_task(self):
+        """
+        The actual task of testing the API connection.
+        """
+        self.update_status("Testing API connection...")
+        try:
+            api_key = self.llm_key_entry.get()
+            base_url = self.character_card_prompt_entry.get()
+            model_name = self.llm_model_entry.get()
+
+            if not all([api_key, base_url, model_name]):
+                messagebox.showerror("Input Error", "Please fill in all API fields before testing.")
+                self.update_status("Test failed: Missing credentials.")
+                return
+
+            response = ai_utils.call_text_model(
+                api_key=api_key,
+                base_url=base_url,
+                model=model_name,
+                user_request="hello!"
+            )
+
+            if response:
+                messagebox.showinfo("Success", "API connection successful!")
+                self.update_status("API connection test successful.")
+            else:
+                messagebox.showerror("Failure", "API call failed. Check console for details.")
+                self.update_status("API connection test failed.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred during the test: {e}")
+            self.update_status("API connection test failed.")
 
     def _populate_generate_tab(self, caption: str, tags: str):
         """
