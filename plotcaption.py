@@ -66,10 +66,6 @@ class VLM_GUI(TkinterDnD.Tk):
         # 2. MANDATORY: Switch to a configurable theme to escape Windows' native rendering
         self.style.theme_use('clam')
 
-        # 3. DEFINITIVE BORDER REMOVAL: Redefine the TNotebook layout
-        #    An empty layout tells ttk to draw no container elements (and thus no border).
-        self.style.layout('TNotebook', [])
-
         # 4. Configure the colors for the different widget parts
 
         # Style for the container frame
@@ -142,6 +138,10 @@ class VLM_GUI(TkinterDnD.Tk):
 
         self.style.configure('Placeholder.TLabel', background=TEXT_BG_COLOR, foreground=PLACEHOLDER_FG_COLOR)
 
+        # Add this new style for our text box frames
+        self.style.configure('Border.TFrame', background=TEXT_BG_COLOR,
+                             borderwidth=1, relief='solid', bordercolor=FIELD_BORDER_AREA_COLOR)
+
         # --- WIDGET CREATION ---
         # (Your existing code for creating the notebook and frames is correct)
         # Just make sure to apply the 'Dark.TFrame' style to your frames:
@@ -162,7 +162,7 @@ class VLM_GUI(TkinterDnD.Tk):
         # --- Status Bar ---
         # Create the status bar first and pack it to the bottom of the window
         self.style.configure('Dark.TLabel', background=DARK_COLOR, foreground="white")
-        self.status_bar = ttk.Label(self, text="Ready. Please load a model.", style='Dark.TLabel', anchor=tk.W)
+        self.status_bar = ttk.Label(self, text="Ready. Please load a model.", relief=tk.FLAT, anchor=tk.W, background=DARK_COLOR, foreground="white")
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # --- Tab Control ---
@@ -189,38 +189,42 @@ class VLM_GUI(TkinterDnD.Tk):
     def _create_labeled_textbox(self, parent, label_text, grid_row, grid_column):
         """
         Creates and grids a labeled Text widget with a vertical scrollbar.
-        (Corrected Version)
         """
-        # --- Create the Label ---
+        # --- Create the Label (no change here) ---
         label = ttk.Label(parent, text=label_text, background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
         label.grid(row=grid_row, column=grid_column, padx=5, pady=(5, 0), sticky="w")
 
-        # --- Create the Container Frame for the Text and Scrollbar ---
-        text_frame = ttk.Frame(parent, style='Dark.TFrame')
-        text_frame.grid(row=grid_row + 1, column=grid_column, sticky="nsew", padx=5, pady=5)
+        # --- Create the OUTER Container Frame (no change here) ---
+        outer_frame = ttk.Frame(parent, style='Dark.TFrame')
+        outer_frame.grid(row=grid_row + 1, column=grid_column, sticky="nsew", padx=5, pady=5)
+        outer_frame.columnconfigure(0, weight=1)
+        outer_frame.rowconfigure(0, weight=1)
 
-        text_frame.columnconfigure(0, weight=1)
-        text_frame.rowconfigure(0, weight=1)
+        # --- NEW: Create the INNER Border Frame ---
+        border_frame = ttk.Frame(outer_frame, style='Border.TFrame')
+        border_frame.grid(row=0, column=0, sticky="nsew")
+        border_frame.columnconfigure(0, weight=1)
+        border_frame.rowconfigure(0, weight=1)
 
-        # --- Create the Text Widget and Scrollbar ---
-        text_box = tk.Text(text_frame,
+        # --- Create the Text Widget and Scrollbar (their parent is now border_frame) ---
+        text_box = tk.Text(border_frame,  # <<< Parent changed
                            wrap="word",
                            bg=TEXT_BG_COLOR,
                            fg=FIELD_FOREGROUND_COLOR,
                            relief="flat",
-                           insertbackground=INSERT_BACKGROUND_COLOR
-                           )
+                           insertbackground=INSERT_BACKGROUND_COLOR,
+                           highlightthickness=0,  # Also good to add this
+                           borderwidth=0)
 
-        scrollbar = ttk.Scrollbar(text_frame,
+        scrollbar = ttk.Scrollbar(border_frame,  # <<< Parent changed
                                   orient="vertical",
-                                  style='Dark.Vertical.TScrollbar',  # <<< THE MISSING PIECE OF EVIDENCE!
+                                  style='Dark.Vertical.TScrollbar',
                                   command=text_box.yview
                                   )
         text_box.config(yscrollcommand=scrollbar.set)
 
-
-        # --- Grid the Text and Scrollbar inside their frame ---
-        text_box.grid(row=0, column=0, sticky="nsew")
+        # --- Grid them inside the border_frame with a little padding ---
+        text_box.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)  # Add some inner padding
         scrollbar.grid(row=0, column=1, sticky="ns")
 
         return text_box
@@ -715,6 +719,7 @@ class VLM_GUI(TkinterDnD.Tk):
             # --- TASK 2: Generate and Parse Tags ---
             tags_prompt = self.loaded_profile.prompt_tags
             raw_tags_output = self.model_handler.generate_description(self.loaded_profile, tags_prompt, self.image_raw)
+
 
             # Use the tags_parser here!
             parsed_tags_data = self.loaded_profile.tags_parser(raw_tags_output)

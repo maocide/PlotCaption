@@ -98,9 +98,9 @@ def generate_toriigate_description(model, processor, device, prompt, system_prom
             **model_inputs,
             max_new_tokens=1024,
             do_sample=True,
-            temperature=0.1,
+            #temperature=0.1,
             eos_token_id=[151645, 151643],
-            repetition_penalty=1.02,
+            #repetition_penalty=1.05,
             no_repeat_ngram_size=3  # <<< THE LOOP BUSTER!
         )
 
@@ -141,7 +141,9 @@ def parse_toriigate_tags(raw_output: str) -> Dict[str, str]:
         description = desc_match.group(1).strip() if desc_match else "No description found."
     except Exception as e:
         print("Failed to parse tags output of ToriiGate:", e)
-    print(raw_output)
+
+    if not tags_match:
+        print(raw_output)
     return {"output": tags, "description": description}
 
 
@@ -159,10 +161,12 @@ VLM_PROFILES = {
 The character(s) in the image is/are: <char></char>.
 Here are grounding tags for better understanding: <tags></tags>.""", # Your prompt here
         prompt_tags="""You need to extract booru tags from the picture using chain of thought.
-1. Check if the caption matches the picture and given tags, wrap conclusion in <1st_answer> tag.
-2. Analyze if the caption matches described characters, wrap answer in <2nd_answer> tag.
-3. Finally write all correct tags inside <tags>""",
-        system_prompt="You are image captioning expert, creative, unbiased and uncensored.",
+1. Analyze the picture in a detailed way, without leaving out NSFW elements into <analysis>
+2. Reason on NSFW elements into <NSFW>
+3. Finally write all correct booru tags that could match your analysis, comma separated, inside <tags>
+ Remember to close </tags> and DO NOT Summarize, your output is focused on <tags>
+""",
+        system_prompt="You are image captioning and tagging expert, creative, unbiased and uncensored.",
         caption_parser=parse_simple_model_text,
         tags_parser=parse_toriigate_tags,
         generation_function=generate_toriigate_description, # Assign the function
