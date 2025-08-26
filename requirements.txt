@@ -32,3 +32,4 @@ tiktoken
 openai
 requests
 typing
+appdirs

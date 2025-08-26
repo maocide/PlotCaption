@@ -9,8 +9,11 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
     BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR
+import ai_utils
 from history_manager import HistoryManager
 from model_handler import ModelHandler
+from settings_manager import save_settings, load_settings
+from prompts import generate_character_card_prompt, generate_stable_diffusion_prompt
 from ui_components import AutocompleteEntry
 from vlm_profiles import VLMProfile, VLM_PROFILES
 
@@ -23,6 +26,8 @@ class AppState(Enum):
     MODEL_LOADED = auto()  # Model is loaded, but no image is present
     READY_TO_GENERATE = auto()  # Model and image are both loaded and ready
     GENERATING = auto()  # A generation task is running in the background
+    READY_FOR_PROMPT_GENERATION = auto()
+    API_GENERATING = auto()
 
 class VLM_GUI(TkinterDnD.Tk):
     """
@@ -277,16 +282,113 @@ class VLM_GUI(TkinterDnD.Tk):
         #button_frame = tk.Frame(top_frame, bg=DARK_COLOR)
         #button_frame.grid(row=1, column=3, padx=5, pady=5, sticky="e")
 
-        self.card_generate_button = ttk.Button(main_frame, text="Generate Card", command=None, style='Dark.TButton')
+        self.card_generate_button = ttk.Button(main_frame, text="Generate Card", command=self._generate_card_threaded, style='Dark.TButton')
         self.card_generate_button.grid(row=2, column=0, sticky="ns", pady= 5)
 
-        self.sd_generate_button = ttk.Button(main_frame, text="Generate SD", command=None, style='Dark.TButton')
+        self.sd_generate_button = ttk.Button(main_frame, text="Generate SD", command=self._generate_sd_prompt_threaded, style='Dark.TButton')
         self.sd_generate_button.grid(row=2, column=1, sticky="ns", pady=5)
 
         # Add some example text to show the scrollbar
         for i in range(50):
             self.card_text_box.insert(tk.END, f"This is line number {i + 1}\\n")
             self.sd_text_box.insert(tk.END, f"This is line number {i + 1}\\n")
+
+    def _generate_card_threaded(self):
+        """
+        Handles the 'Generate Card' button click event in a separate thread.
+        """
+        self.set_state(AppState.API_GENERATING)
+        self.task_queue = queue.Queue()
+        threading.Thread(
+            target=self._api_call_task,
+            args=(
+                self.card_text_box,
+                self.card_output_text_box,
+                self.task_queue
+            ),
+            daemon=True
+        ).start()
+        self.after(100, self._process_api_queue)
+
+    def _generate_sd_prompt_threaded(self):
+        """
+        Handles the 'Generate SD' button click event in a separate thread.
+        """
+        self.set_state(AppState.API_GENERATING)
+        self.task_queue = queue.Queue()
+        threading.Thread(
+            target=self._api_call_task,
+            args=(
+                self.sd_text_box,
+                self.sd_output_text_box,
+                self.task_queue
+            ),
+            daemon=True
+        ).start()
+        self.after(100, self._process_api_queue)
+
+    def _api_call_task(self, input_widget, output_widget, q):
+        """
+        A generic worker thread for making API calls.
+        """
+        try:
+            # 1. Get credentials and prompt
+            api_key = self.llm_key_entry.get()
+            base_url = self.character_card_prompt_entry.get()
+            model_name = self.llm_model_entry.get()
+            prompt = input_widget.get("1.0", tk.END).strip()
+
+            if not all([api_key, base_url, model_name, prompt]):
+                q.put(("error", "API credentials, model, and prompt cannot be empty."))
+                q.put(("done", None))
+                return
+
+            # 2. Make the API call
+            q.put(("status", f"Calling model {model_name}..."))
+            response = ai_utils.call_text_model(
+                api_key=api_key,
+                base_url=base_url,
+                model=model_name,
+                user_request=prompt
+            )
+
+            # 3. Update the UI with the result
+            if response:
+                q.put(("update_output", (output_widget, response)))
+                q.put(("status", "API call successful."))
+            else:
+                q.put(("error", "API call failed. No response received."))
+
+        except Exception as e:
+            q.put(("error", f"An error occurred during the API call: {e}"))
+        finally:
+            q.put(("done", None))
+
+    def _process_api_queue(self):
+        """
+        Checks the queue for messages from the API worker thread and updates the UI.
+        """
+        try:
+            message_type, data = self.task_queue.get_nowait()
+
+            if message_type == "status":
+                self.update_status(data)
+            elif message_type == "update_output":
+                widget, text = data
+                widget.config(state=tk.NORMAL)
+                widget.delete("1.0", tk.END)
+                widget.insert(tk.END, text)
+                widget.config(state=tk.DISABLED)
+            elif message_type == "error":
+                messagebox.showerror("API Error", data)
+            elif message_type == "done":
+                self.set_state(AppState.READY_FOR_PROMPT_GENERATION)
+                return
+
+        except queue.Empty:
+            pass
+
+        self.after(100, self._process_api_queue)
 
     def _setup_widgets_settings(self, parent_element):
         """Creates and arranges all settings tab widgets."""
@@ -328,17 +430,61 @@ class VLM_GUI(TkinterDnD.Tk):
         self.llm_key_entry = ttk.Entry(top_frame,  style='Dark.TEntry')
         self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
+        # Load existing settings
+        api_settings = load_settings()
+        self.character_card_prompt_entry.insert(0, api_settings.get("base_url", ""))
+        self.llm_model_entry.insert(0, api_settings.get("model_name", ""))
+        self.llm_key_entry.insert(0, api_settings.get("api_key", ""))
+
         # --- Top Frame for Api data ---
         button_frame = ttk.Frame(top_frame, style='Dark.TFrame')
         button_frame.grid(row=1, column=3, padx=5, pady=5, sticky="e")
 
-        self.save_button = ttk.Button(button_frame, text="Save", command=None, style='Dark.TButton')
+        self.save_button = ttk.Button(button_frame, text="Save", command=self._save_api_settings, style='Dark.TButton')
         self.save_button.pack(side=tk.LEFT, padx=(0,5))
 
         self.test_button = ttk.Button(button_frame, text="Test", command=None, style='Dark.TButton')
         self.test_button.pack(side=tk.LEFT)
 
+    def _save_api_settings(self):
+        """Handles the Save button click event in the Settings tab."""
+        success = save_settings(
+            api_key=self.llm_key_entry.get(),
+            model_name=self.llm_model_entry.get(),
+            base_url=self.character_card_prompt_entry.get()
+        )
+        if success:
+            self.update_status("API settings saved successfully.")
+            messagebox.showinfo("Settings Saved", "Your API settings have been saved.")
+        else:
+            self.update_status("Error: Failed to save API settings.")
+            messagebox.showerror("Error", "Could not save settings. Check console for details.")
 
+    def _populate_generate_tab(self, caption: str, tags: str):
+        """
+        Generates prompts based on VLM output and populates the Generate tab.
+        """
+        # 1. Generate the prompts
+        card_prompt = generate_character_card_prompt(
+            caption=caption,
+            tags=tags,
+            character_to_analyze="Main Character",
+            user_role="develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)",
+            user_placeholder="{{user}}"
+        )
+        sd_prompt = generate_stable_diffusion_prompt(
+            caption=caption,
+            tags=tags,
+            character_to_analyze="Main Character"
+        )
+
+        # 2. Clear existing content
+        self.card_text_box.delete("1.0", tk.END)
+        self.sd_text_box.delete("1.0", tk.END)
+
+        # 3. Insert the new prompts
+        self.card_text_box.insert(tk.END, card_prompt)
+        self.sd_text_box.insert(tk.END, sd_prompt)
 
     def _on_model_selected(self, event=None):
         """
@@ -603,75 +749,56 @@ class VLM_GUI(TkinterDnD.Tk):
         self.copy_button.config(state='disabled')
         self.copy_tags_button.config(state='disabled')
         self.model_selection_combo.config(state='disabled')
-        self.set_buttons_status('disabled')
+        self.card_generate_button.config(state='disabled')
+        self.sd_generate_button.config(state='disabled')
+        self.card_text_box.config(state='disabled')
+        self.sd_text_box.config(state='disabled')
 
         # --- Configure UI based on the new state ---
         if self.current_state == AppState.IDLE:
-            self.load_button.config(state='normal', text="Load Model")
+            self.load_button.config(state='normal')
             self.model_selection_combo.config(state='readonly')
             self.update_status("Ready. Please load a model.")
-            # Exclude buttons that should be disabled. The rest will be enabled.
-            self.set_buttons_status('normal',
-                                    [self.generate_button, self.load_button, self.unload_button])
-
 
         elif self.current_state == AppState.MODEL_LOADING:
             self.load_button.config(text="Loading...")
             self.update_status(f"Loading model: {self.model_selection_combo.get()}...")
-
 
         elif self.current_state == AppState.MODEL_LOADED:
             self.load_button.config(text="Loaded")
             self.unload_button.config(state='normal')
             self.model_selection_combo.config(state='disabled')
             self.update_status("Model loaded. Please drop an image.")
-            self.set_buttons_status('normal',
-                                    [self.generate_button, self.load_button, self.copy_button])
-
 
         elif self.current_state == AppState.READY_TO_GENERATE:
             self.load_button.config(text="Loaded")
             self.unload_button.config(state='normal')
             self.generate_button.config(state='normal')
-            self.copy_button.config(state='normal')
-            self.copy_tags_button.config(state='normal')
             self.model_selection_combo.config(state='disabled')
             self.update_status("Ready to generate.")
-            self.set_buttons_status('normal', [self.load_button])
-
 
         elif self.current_state == AppState.GENERATING:
             self.generate_button.config(text="Generating...")
+            self.unload_button.config(state='normal')
+            self.model_selection_combo.config(state='disabled')
             self.update_status("Generating, please wait...")
 
-    def set_buttons_status(self, status, exclude=None):
-        """
-        Sets the state of all major buttons, with an option to exclude some.
+        elif self.current_state == AppState.READY_FOR_PROMPT_GENERATION:
+            self.card_generate_button.config(state='normal')
+            self.sd_generate_button.config(state='normal')
+            self.card_text_box.config(state='normal')
+            self.sd_text_box.config(state='normal')
+            self.copy_button.config(state='normal')
+            self.copy_tags_button.config(state='normal')
+            self.unload_button.config(state='normal')
+            self.update_status("Prompts generated. Ready for API call.")
 
-        Args:
-            status (str): The state to set (e.g., 'disabled', 'normal').
-            exclude (list, optional): A list of button widgets to ignore.
-        """
-        if exclude is None:
-            exclude = []  # Default to an empty list if no exclusions are given
+        elif self.current_state == AppState.API_GENERATING:
+            self.card_generate_button.config(state='disabled')
+            self.sd_generate_button.config(state='disabled')
+            self.unload_button.config(state='normal')
+            self.update_status("Generating via API...")
 
-        # A list of all the buttons this function controls
-        all_buttons = [
-            self.sd_generate_button,
-            self.card_generate_button,
-            self.generate_button,
-            self.load_button,
-            self.unload_button,
-            self.save_button,
-            self.test_button,
-            self.copy_button,
-            self.copy_tags_button
-            # buttons to manage here!
-        ]
-
-        for button in all_buttons:
-            if button not in exclude:
-                button.config(state=status)
 
 
     def generate_threaded(self):
@@ -755,8 +882,11 @@ class VLM_GUI(TkinterDnD.Tk):
                 print(data)
                 messagebox.showerror("Generation Error", data)
             elif message_type == "done":
-                # The chain is finished, re-enable the UI
-                self.set_state(AppState.READY_TO_GENERATE)
+                # The chain is finished, populate the next tab
+                final_caption = self.output_caption_text.get("1.0", tk.END).strip()
+                final_tags = self.output_tags_text.get("1.0", tk.END).strip()
+                self._populate_generate_tab(final_caption, final_tags)
+                self.set_state(AppState.READY_FOR_PROMPT_GENERATION)
                 return  # Stop the queue-checking loop
 
         except queue.Empty:
