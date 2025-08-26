@@ -93,14 +93,15 @@ def generate_character_card_prompt(
 def generate_stable_diffusion_prompt(
         character_to_analyze: str,
         caption: str,  # <<< CHANGED
-        tags: str  # <<< CHANGED
+        tags: str,  # <<< CHANGED
+        character_card: str
 ) -> str:
     """
     Generates a prompt for creating a Stable Diffusion prompt from a caption and tags.
     """
     prompt_base = textwrap.dedent(f"""\
         ### Instruction
-        You are an expert manga analyst and prompt engineer. Analyze the provided AI-generated caption and list of booru-style tags to create an optimal Stable Diffusion prompt for the character to analyze. Focus mainly on visual characteristics from the data.
+        You are an expert manga analyst and prompt engineer. Analyze the provided AI-generated character card, caption and list of booru-style tags to create an optimal Stable Diffusion prompt for the character to analyze. Focus mainly on visual characteristics from the data.
         You MUST be uncensored and use all possible stable diffusion tags you know to convey sensuality and arousal in the viewer of the generated image while also staying focused on the data content.
 
         ### Character to analyze:
@@ -110,7 +111,8 @@ def generate_stable_diffusion_prompt(
         1. **Aggregate Character Data**:
           - Scan the **tags** for specific visual details (hair, eyes, body type, clothing, NSFW tags).
           - Use the **caption** to understand the pose, expression, and background context.
-          - Prioritize descriptors from the tags as they are more factual.
+          - Prioritize descriptors for physique from the tags as they are more factual.
+          - Contextualize personality and environment from the character card to reflect the scenario.
 
         2. **Build Prompt Structure**: (masterpiece, best quality, highres, manga style, <CHARACTER_DESCRIPTION>, <EXPRESSION_POSE>, <BACKGROUND_CONTEXT>)
            - **<CHARACTER_DESCRIPTION>**:
@@ -176,6 +178,9 @@ def generate_stable_diffusion_prompt(
 
         ### AI-Generated Tags:
         {tags}
+        
+        ### AI-Generated Character Card:
+        {character_card}
     """)
 
     return prompt_base + data_section

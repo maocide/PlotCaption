@@ -264,7 +264,6 @@ class VLM_GUI(TkinterDnD.Tk):
 
         self.card_output_text_box = self._create_labeled_textbox(
             parent=main_frame,
-            # I noticed both your labels were the same, so I fixed this one!
             label_text="Output Charater Card:",
             grid_row=3,
             grid_column=0
@@ -272,8 +271,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
         self.sd_output_text_box = self._create_labeled_textbox(
             parent=main_frame,
-            # I noticed both your labels were the same, so I fixed this one!
-            label_text="Output Charater Card:",
+            label_text="Output SD Prompt:",
             grid_row=3,
             grid_column=1
         )
@@ -495,11 +493,11 @@ class VLM_GUI(TkinterDnD.Tk):
             messagebox.showerror("Error", f"An error occurred during the test: {e}")
             self.update_status("API connection test failed.")
 
-    def _populate_generate_tab(self, caption: str, tags: str):
+    def _populate_generate_card(self, caption: str, tags: str):
         """
         Generates prompts based on VLM output and populates the Generate tab.
         """
-        # 1. Generate the prompts
+        # 1. Generate the prompt
         card_prompt = generate_character_card_prompt(
             caption=caption,
             tags=tags,
@@ -507,18 +505,28 @@ class VLM_GUI(TkinterDnD.Tk):
             user_role="develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)",
             user_placeholder="{{user}}"
         )
-        sd_prompt = generate_stable_diffusion_prompt(
-            caption=caption,
-            tags=tags,
-            character_to_analyze="Main Character"
-        )
+        
 
         # 2. Clear existing content
         self.card_text_box.delete("1.0", tk.END)
+
+        # 3. Insert the new prompt
+        self.card_text_box.insert(tk.END, card_prompt)
+
+    def _populate_generate_SD(self, caption: str, tags: str, character_card: str):
+
+        # 1. Generate the prompt
+        sd_prompt = generate_stable_diffusion_prompt(
+            caption=caption,
+            tags=tags,
+            character_card="Main Character",
+            character_to_analyze="Character from character card, Main Character"
+        )
+
+        # 2. Clear existing content
         self.sd_text_box.delete("1.0", tk.END)
 
-        # 3. Insert the new prompts
-        self.card_text_box.insert(tk.END, card_prompt)
+        # 3. Insert the new prompt
         self.sd_text_box.insert(tk.END, sd_prompt)
 
     def _on_model_selected(self, event=None):
@@ -924,7 +932,7 @@ class VLM_GUI(TkinterDnD.Tk):
                 # Set the state first to enable the text boxes
                 self.set_state(AppState.READY_FOR_PROMPT_GENERATION)
                 # Now populate them
-                self._populate_generate_tab(final_caption, final_tags)
+                self._populate_generate_card(final_caption, final_tags)
                 return  # Stop the queue-checking loop
 
         except queue.Empty:
