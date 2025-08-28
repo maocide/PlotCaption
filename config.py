@@ -11,6 +11,9 @@ TAGS_PROMPT = """Describe the picture in structured json-like format. Include a 
 MAX_THUMBNAIL_SIZE = (400, 400)
 MODEL_HISTORY_FILE = "model_history.json"
 
+COPY_IMAGE_FILE = "assets/copy_image.png"
+COPY_IMAGE_HOVER_FILE = "assets/copy_image_hover.png"
+
 DARK_COLOR = "#2E2E2E"
 INACTIVE_TAB_COLOR = "#303030"
 FIELD_BORDER_AREA_COLOR = "#4A4A4A"

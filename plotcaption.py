@@ -8,7 +8,8 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
-    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR
+    BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, COPY_IMAGE_FILE, \
+    COPY_IMAGE_HOVER_FILE
 import ai_utils
 from history_manager import HistoryManager
 from model_handler import ModelHandler
@@ -132,6 +133,18 @@ class VLM_GUI(TkinterDnD.Tk):
                              padding=6,
                              relief='flat')  # Makes the button flat
 
+        # This is the style we are updating!
+        self.style.configure('Icon.TButton',
+                             background=DARK_COLOR,
+                             foreground=FIELD_FOREGROUND_COLOR,
+                             relief='flat',
+                             font=('Segoe UI Emoji', 10), # emoji fontgit
+                             padding=[5, 2, 5, 4])
+
+        self.style.map('Icon.TButton',
+                       background=[('active', FIELD_BORDER_AREA_COLOR),
+                                   ('pressed', BUTTON_PRESSED_COLOR)])
+
         # Optional: Change color when the mouse hovers or clicks
         self.style.map('Dark.TButton',
                        background=[('active', BUTTON_ACTIVATE_COLOR), ('pressed', BUTTON_PRESSED_COLOR)])
@@ -175,11 +188,19 @@ class VLM_GUI(TkinterDnD.Tk):
         # NOW, pack the tab control last, letting it fill the remaining space
         self.tab_control.pack(expand=True, fill="both", padx=0, pady=0)
 
+        # --- Load Icon Images ---
+        self.copy_icon = tk.PhotoImage(file=COPY_IMAGE_FILE)
+        self.copy_icon_hover = tk.PhotoImage(file=COPY_IMAGE_HOVER_FILE)
+
         # --- UI Setup ---
         self._setup_widgets_vlm(self.tab1_frame)
         self._setup_widgets_llm(self.tab2_frame)
         self._setup_widgets_settings(self.tab3_frame)
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
+
+
+        self.current_state = None
+        self.set_state(AppState.IDLE)
 
         self.current_state = None  # Initialize it
         self.set_state(AppState.IDLE)  # Set the initial state
@@ -192,62 +213,64 @@ class VLM_GUI(TkinterDnD.Tk):
         self.history_manager.save_on_exit()
         self.destroy()
 
-    def _create_labeled_textbox(self, parent, label_text, grid_row, grid_column):
-        """
-        Creates and grids a labeled Text widget with a vertical scrollbar.
-        """
-        # --- Create the Label (no change here) ---
-        label = ttk.Label(parent, text=label_text, background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
-        label.grid(row=grid_row, column=grid_column, padx=5, pady=(5, 0), sticky="w")
+    def _on_copy_enter(self, event):
+        """Changes the button image when the mouse enters."""
+        event.widget.config(image=self.copy_icon_hover)
 
-        # --- Create the OUTER Container Frame (no change here) ---
+    def _on_copy_leave(self, event):
+        """Changes the button image back when the mouse leaves."""
+        event.widget.config(image=self.copy_icon)
+
+    def _create_labeled_textbox(self, parent, label_text, grid_row, grid_column, copy_command=None):
+        """
+        Creates and grids a labeled Text widget with an optional, right-aligned copy button.
+        """
+        # --- Create the Label Frame (this will hold the label and optional button) ---
+        label_frame = ttk.Frame(parent, style='Dark.TFrame')
+        label_frame.grid(row=grid_row, column=grid_column, padx=5, pady=(5, 0), sticky="ew")
+
+        label = ttk.Label(label_frame, text=label_text, style='Dark.TLabel')
+        label.pack(side=tk.LEFT)
+
+        # --- If a copy command is provided, create the button! ---
+        if copy_command:
+            copy_button = ttk.Button(label_frame, image=self.copy_icon, command=copy_command, style='Icon.TButton')
+            copy_button.pack(side=tk.RIGHT)
+            copy_button.bind("<Enter>", self._on_copy_enter)
+            copy_button.bind("<Leave>", self._on_copy_leave)
+
+        # --- Create the Text Box Frame (no changes here) ---
         outer_frame = ttk.Frame(parent, style='Dark.TFrame')
         outer_frame.grid(row=grid_row + 1, column=grid_column, sticky="nsew", padx=5, pady=5)
         outer_frame.columnconfigure(0, weight=1)
         outer_frame.rowconfigure(0, weight=1)
 
-        # --- NEW: Create the INNER Border Frame ---
         border_frame = ttk.Frame(outer_frame, style='Border.TFrame')
         border_frame.grid(row=0, column=0, sticky="nsew")
         border_frame.columnconfigure(0, weight=1)
         border_frame.rowconfigure(0, weight=1)
 
-        # --- Create the Text Widget and Scrollbar (their parent is now border_frame) ---
-        text_box = tk.Text(border_frame,  # <<< Parent changed
-                           wrap="word",
-                           bg=TEXT_BG_COLOR,
-                           fg=FIELD_FOREGROUND_COLOR,
-                           relief="flat",
-                           insertbackground=INSERT_BACKGROUND_COLOR,
-                           highlightthickness=0,  # Also good to add this
-                           borderwidth=0)
-
-        scrollbar = ttk.Scrollbar(border_frame,  # <<< Parent changed
-                                  orient="vertical",
-                                  style='Dark.Vertical.TScrollbar',
-                                  command=text_box.yview
-                                  )
+        text_box = tk.Text(border_frame, wrap="word", bg=TEXT_BG_COLOR, fg=FIELD_FOREGROUND_COLOR,
+                           relief="flat", insertbackground=INSERT_BACKGROUND_COLOR,
+                           highlightthickness=0, borderwidth=0)
+        scrollbar = ttk.Scrollbar(border_frame, orient="vertical", style='Dark.Vertical.TScrollbar',
+                                  command=text_box.yview)
         text_box.config(yscrollcommand=scrollbar.set)
-
-        # --- Grid them inside the border_frame with a little padding ---
-        text_box.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)  # Add some inner padding
+        text_box.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
         scrollbar.grid(row=0, column=1, sticky="ns")
 
         return text_box
 
     def _setup_widgets_llm(self, parent_frame):
-        # --- WIDGET CREATION ---
+        # ... (main_frame setup is the same) ...
         main_frame = ttk.Frame(parent_frame, style='Dark.TFrame', padding=10)
         main_frame.pack(expand=True, fill="both")
-
-        # --- Configure the grid of the PARENT element to be resizable ---
         main_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
-        # This next line is important so the text boxes can grow vertically!
         main_frame.rowconfigure(1, weight=1)
         main_frame.rowconfigure(4, weight=1)
 
-        # --- Create Text Boxes using our shiny new helper function ---
+        # --- Input boxes don't get a copy button ---
         self.card_text_box = self._create_labeled_textbox(
             parent=main_frame,
             label_text="Character card Prompt:",
@@ -257,34 +280,34 @@ class VLM_GUI(TkinterDnD.Tk):
 
         self.sd_text_box = self._create_labeled_textbox(
             parent=main_frame,
-            # I noticed both your labels were the same, so I fixed this one!
             label_text="SD Prompt:",
             grid_row=0,
             grid_column=1
         )
 
+        # --- Output boxes DO get a copy button! ---
         self.card_output_text_box = self._create_labeled_textbox(
             parent=main_frame,
-            label_text="Output Charater Card:",
+            label_text="Output Character Card:",
             grid_row=3,
-            grid_column=0
+            grid_column=0,
+            copy_command=self._copy_card_output_to_clipboard  # <-- Pass the command here
         )
 
         self.sd_output_text_box = self._create_labeled_textbox(
             parent=main_frame,
             label_text="Output SD Prompt:",
             grid_row=3,
-            grid_column=1
+            grid_column=1,
+            copy_command=self._copy_sd_output_to_clipboard  # <-- And here!
         )
 
-        # --- Top Frame for Api data ---
-        #button_frame = tk.Frame(top_frame, bg=DARK_COLOR)
-        #button_frame.grid(row=1, column=3, padx=5, pady=5, sticky="e")
-
-        self.card_generate_button = ttk.Button(main_frame, text="Generate Card", command=self._generate_card_threaded, style='Dark.TButton')
-        self.card_generate_button.grid(row=2, column=0, sticky="ns", pady= 5)
-
-        self.sd_generate_button = ttk.Button(main_frame, text="Generate SD", command=self._generate_sd_prompt_threaded, style='Dark.TButton')
+        # ... (the rest of the function with the generate buttons is the same) ...
+        self.card_generate_button = ttk.Button(main_frame, text="Generate Card", command=self._generate_card_threaded,
+                                               style='Dark.TButton')
+        self.card_generate_button.grid(row=2, column=0, sticky="ns", pady=5)
+        self.sd_generate_button = ttk.Button(main_frame, text="Generate SD", command=self._generate_sd_prompt_threaded,
+                                             style='Dark.TButton')
         self.sd_generate_button.grid(row=2, column=1, sticky="ns", pady=5)
 
 
@@ -562,8 +585,6 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def _setup_widgets_vlm(self, parent_element):
         """Creates and arranges all the VLM tab widgets."""
-        # In your _setup_widgets method:
-        # Add highlightthickness=0 and bd=0 (border) to this line.
 
         main_frame = ttk.Frame(parent_element, style='Dark.TFrame')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
@@ -612,12 +633,10 @@ class VLM_GUI(TkinterDnD.Tk):
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # --- GRID CONFIGURATION FOR THE RIGHT PANEL ---
-        # This is the new, important part!
         # Tell the grid that column 0 should expand to fill the horizontal space.
         right_panel.columnconfigure(0, weight=1)
 
         # Tell the grid how to distribute EXTRA vertical space.
-        # We give more weight to the caption output (row 4) than the tags output (row 6).
         # A 2:1 ratio means the caption gets 2/3 and the tags get 1/3 of the extra space.
         right_panel.rowconfigure(4, weight=2)
         right_panel.rowconfigure(6, weight=1)
@@ -642,45 +661,74 @@ class VLM_GUI(TkinterDnD.Tk):
         self.generate_button.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         self.generate_button.config(state=tk.DISABLED)
 
-        # Row 3: Output Caption Label
-        output_caption_label = ttk.Label(right_panel, text="Model Output:", style='Dark.TLabel')
-        output_caption_label.grid(row=3, column=0, sticky="w")
 
-        # Row 4: Output Caption Text (EXPANDS with weight=2)
-        self.output_caption_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg=TEXT_BG_COLOR,
-                                                             fg=FIELD_FOREGROUND_COLOR,
-                                                             relief=tk.FLAT, insertbackground=INSERT_BACKGROUND_COLOR,
-                                                             state=tk.DISABLED,
-                                                             height=1 )
-        self.output_caption_text.grid(row=4, column=0, sticky="nsew")
+        # --- NEW: Output Caption Label with Copy Button ---
+        caption_label_frame = ttk.Frame(right_panel, style='Dark.TFrame')
+        caption_label_frame.grid(row=3, column=0, sticky="ew")
 
-        # Row 5: Output Tags Label
-        output_tags_label = ttk.Label(right_panel, text="Booru Tags Output:", style='Dark.TLabel')
-        output_tags_label.grid(row=5, column=0, sticky="w", pady=(10, 0))
+        output_caption_label = ttk.Label(caption_label_frame, text="Model Output:", style='Dark.TLabel')
+        output_caption_label.pack(side=tk.LEFT)  # This stays on the left
 
-        # Row 6: Output Tags Text (EXPANDS with weight=1)
-        self.output_tags_text = scrolledtext.ScrolledText(right_panel, wrap=tk.WORD, bg=TEXT_BG_COLOR,
-                                                          fg=FIELD_FOREGROUND_COLOR,
-                                                          relief=tk.FLAT, insertbackground=INSERT_BACKGROUND_COLOR,
-                                                          state=tk.DISABLED,
-                                                          height=1 )
-        self.output_tags_text.grid(row=6, column=0, sticky="nsew")
+        self.copy_caption_button = ttk.Button(caption_label_frame, image=self.copy_icon, command=self.copy_to_clipboard,
+                                              style='Icon.TButton')
+        self.copy_caption_button.pack(side=tk.RIGHT)  # <-- CHANGE THIS to tk.RIGHT
+        self.copy_caption_button.bind("<Enter>", self._on_copy_enter)
+        self.copy_caption_button.bind("<Leave>", self._on_copy_leave)
+
+        # Row 4: Output Caption Text
+        caption_text_frame = ttk.Frame(right_panel, style='Border.TFrame')
+        caption_text_frame.grid(row=4, column=0, sticky="nsew")
+        caption_text_frame.columnconfigure(0, weight=1)
+        caption_text_frame.rowconfigure(0, weight=1)
+
+        self.output_caption_text = tk.Text(caption_text_frame, wrap="word", bg=TEXT_BG_COLOR,
+                                           fg=FIELD_FOREGROUND_COLOR, relief="flat",
+                                           insertbackground=INSERT_BACKGROUND_COLOR,
+                                           highlightthickness=0, borderwidth=0, state=tk.DISABLED)
+        caption_scrollbar = ttk.Scrollbar(caption_text_frame, orient="vertical",
+                                          style='Dark.Vertical.TScrollbar',  # <-- The magic style!
+                                          command=self.output_caption_text.yview)
+        self.output_caption_text.config(yscrollcommand=caption_scrollbar.set)
+
+        self.output_caption_text.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+        caption_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # --- NEW: Output Tags Label with Copy Button ---
+        tags_label_frame = ttk.Frame(right_panel, style='Dark.TFrame')
+        tags_label_frame.grid(row=5, column=0, sticky="ew", pady=(10, 0))
+
+        output_tags_label = ttk.Label(tags_label_frame, text="Booru Tags Output:", style='Dark.TLabel')
+        output_tags_label.pack(side=tk.LEFT)  # This stays on the left
+
+        self.copy_tags_button = ttk.Button(tags_label_frame, image=self.copy_icon, command=self.copy_tags_to_clipboard,
+                                           style='Icon.TButton')
+        self.copy_tags_button.pack(side=tk.RIGHT)  # <-- CHANGE THIS to tk.RIGHT
+        self.copy_tags_button.bind("<Enter>", self._on_copy_enter)
+        self.copy_tags_button.bind("<Leave>", self._on_copy_leave)
+
+        # Row 6: Output Tags Text
+        # NEW CODE for the tags text box
+        tags_text_frame = ttk.Frame(right_panel, style='Border.TFrame')
+        tags_text_frame.grid(row=6, column=0, sticky="nsew")
+        tags_text_frame.columnconfigure(0, weight=1)
+        tags_text_frame.rowconfigure(0, weight=1)
+
+        self.output_tags_text = tk.Text(tags_text_frame, wrap="word", bg=TEXT_BG_COLOR,
+                                        fg=FIELD_FOREGROUND_COLOR, relief="flat",
+                                        insertbackground=INSERT_BACKGROUND_COLOR,
+                                        highlightthickness=0, borderwidth=0, state=tk.DISABLED)
+        tags_scrollbar = ttk.Scrollbar(tags_text_frame, orient="vertical",
+                                       style='Dark.Vertical.TScrollbar',  # <-- The magic style again!
+                                       command=self.output_tags_text.yview)
+        self.output_tags_text.config(yscrollcommand=tags_scrollbar.set)
+
+        self.output_tags_text.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+        tags_scrollbar.grid(row=0, column=1, sticky="ns")
 
         # Row 7: Button Container
         button_container = ttk.Frame(right_panel, style='Dark.TFrame')
         button_container.grid(row=7, column=0, sticky="ew", pady=(10, 0))
 
-        # --- Move the existing copy_button ---
-        self.copy_button = ttk.Button(button_container, text="Copy Output", command=self.copy_to_clipboard,
-                                      style='Dark.TButton')
-        self.copy_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
-        self.copy_button.config(state=tk.DISABLED)
-
-        # --- Create the new copy_tags_button ---
-        self.copy_tags_button = ttk.Button(button_container, text="Copy Tags", command=self.copy_tags_to_clipboard,
-                                           style='Dark.TButton')
-        self.copy_tags_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
-        self.copy_tags_button.config(state=tk.DISABLED)
 
 
     def handle_drop(self, event):
@@ -801,15 +849,17 @@ class VLM_GUI(TkinterDnD.Tk):
         self.current_state = new_state
         # Default states
         self.load_button.config(state='disabled')
+        self.load_button.config(text="Load")
         self.unload_button.config(state='disabled')
         self.generate_button.config(state='disabled', text="Generate Description")
-        self.copy_button.config(state='disabled')
-        self.copy_tags_button.config(state='disabled')
+        self.copy_caption_button.config(state='enabled')
+        self.copy_tags_button.config(state='enabled')
         self.model_selection_combo.config(state='disabled')
         self.card_generate_button.config(state='disabled')
         self.sd_generate_button.config(state='disabled')
         self.card_text_box.config(state='disabled')
         self.sd_text_box.config(state='disabled')
+
 
         # --- Configure UI based on the new state ---
         if self.current_state == AppState.IDLE:
@@ -836,26 +886,28 @@ class VLM_GUI(TkinterDnD.Tk):
 
         elif self.current_state == AppState.GENERATING:
             self.generate_button.config(text="Generating...")
-            self.unload_button.config(state='normal')
+            self.unload_button.config(state='disabled')
             self.model_selection_combo.config(state='disabled')
             self.update_status("Generating, please wait...")
 
         elif self.current_state == AppState.READY_FOR_CARD_GENERATION:
+            self.generate_button.config(state='normal')
             self.card_text_box.config(state='normal')
             self.card_generate_button.config(state='normal')
             self.sd_text_box.config(state='disabled')
-            self.sd_generate_button.config(state='disabled')
-            self.copy_button.config(state='normal')
+            self.sd_generate_button.config(state='normal')
+            self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
             self.update_status("Character Card prompt ready. Click 'Generate Card'.")
 
         elif self.current_state == AppState.READY_FOR_SD_GENERATION:
+            self.generate_button.config(state='normal')
             self.card_text_box.config(state='normal')
             self.card_generate_button.config(state='normal')
             self.sd_text_box.config(state='normal')
             self.sd_generate_button.config(state='normal')
-            self.copy_button.config(state='normal')
+            self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
             self.update_status("Character Card generated. SD prompt is ready.")
@@ -974,7 +1026,7 @@ class VLM_GUI(TkinterDnD.Tk):
             response = self.model_handler.generate_description(prompt, self.image_raw)
             self.update_caption_text(response)
             self.update_status("Generation complete.")
-            self.copy_button.config(state=tk.NORMAL)
+            self.copy_caption_button.config(state=tk.NORMAL)
         except Exception as e:
             messagebox.showerror("Generation Error", f"An error occurred during generation: {e}")
             self.update_status("Generation failed.")
@@ -1010,6 +1062,18 @@ class VLM_GUI(TkinterDnD.Tk):
         self.clipboard_clear()
         self.clipboard_append(self.output_tags_text.get("1.0", tk.END))
         self.update_status("Tags copied to clipboard.")
+
+    def _copy_card_output_to_clipboard(self):
+        """Copies the character card output to the clipboard."""
+        self.clipboard_clear()
+        self.clipboard_append(self.card_output_text_box.get("1.0", tk.END))
+        self.update_status("Character card output copied to clipboard.")
+
+    def _copy_sd_output_to_clipboard(self):
+        """Copies the SD prompt output to the clipboard."""
+        self.clipboard_clear()
+        self.clipboard_append(self.sd_output_text_box.get("1.0", tk.END))
+        self.update_status("SD prompt output copied to clipboard.")
 
 
 if __name__ == "__main__":
