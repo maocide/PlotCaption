@@ -456,7 +456,7 @@ class VLM_GUI(TkinterDnD.Tk):
         # sticky="w" aligns the text to the West (left) of its grid cell
         llm_key_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
-        self.llm_key_entry = ttk.Entry(top_frame,  style='Dark.TEntry')
+        self.llm_key_entry = ttk.Entry(top_frame,  style='Dark.TEntry', show='*')
         self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
         # Load existing settings
