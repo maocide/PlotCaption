@@ -172,8 +172,8 @@ Here are grounding tags for better understanding: <tags></tags>.""", # Your prom
         generation_function=generate_toriigate_description, # Assign the function
         loader_function=load_toriigate_model # Assign the loader
     ),
-    "llama-joycaption-alpha-two-hf-llava": VLMProfile(
-        model_id="fancyfeast/llama-joycaption-alpha-two-hf-llava",
+    "llama-joycaption-beta-one-hf-llava": VLMProfile(
+        model_id="fancyfeast/llama-joycaption-beta-one-hf-llava",
         prompt_caption="Write a long detailed description for this image.", # Your prompt here
         prompt_tags="Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: artist:, copyright:, character:, meta:, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text.", # Your prompt here
         system_prompt="You are a helpful image captioner.",
