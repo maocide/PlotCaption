@@ -1,0 +1,79 @@
+# 🎨 PlotCaption 📝
+### *Turn a single picture into a character's entire life story... and then make more pictures of them.*
+
+Ever look at an image and think, "I could write a novel about them"? Or maybe, "I wish I could get my Stable Diffusion prompts to actually listen to me"? What if you could do both, at the same time, with one click?
+
+PlotCaption is your local, private, and slightly unhinged AI sidekick that does just that. Feed it an image, and it spits out two things:
+1.  **Rich, detailed character lore** for all you storytellers and roleplayers out there.
+2.  **Exquisitely detailed Stable Diffusion prompts** for the AI artists who are tired of wrestling with tags.
+
+It's an entire creative workflow in a box, and the best part? It runs on your own machine. No prying eyes, no content filters, no API fees. Just pure, uncensored creative freedom.
+
+## 🤔 Who is this for?
+
+We built PlotCaption for a few special kinds of people. See if you fit the bill:
+
+*   **The Privacy-Conscious Tinkerer:** You hang out on r/LocalLLM, you've got Oobabooga or LM Studio running, and you believe your data is your data. You want powerful tools that run offline. We got you. PlotCaption is open-source, runs locally, and is designed to be poked and prodded.
+*   **The Creative Roleplayer & Storyteller:** You're building worlds on Janitor AI or writing the next great web novel. You need characters with depth, personality, and maybe a few... *spicy* details. PlotCaption is your cure for creative block, instantly generating rich character cards from a single image. It's uncensored, so you can explore the themes you want without a corporate AI wagging its finger at you.
+*   **The Stable Diffusion Workflow Optimizer:** You're a power user of ComfyUI or A1111, but you know that a good prompt is half the battle. You want to create consistent characters and scenes without spending hours crafting the perfect string of tags. PlotCaption generates narrative-style, highly-detailed prompts that go way beyond `1girl, smile`.
+
+## ✨ Features
+
+*   🔮 **Dual-Output Magic:** The only tool that generates both character lore and a Stable Diffusion prompt from a single image. It's a two-for-one creative explosion!
+*   🏠 **Runs Locally, Stays Local:** Your images and generated text never leave your computer. It's private, secure, and costs you exactly $0 in API fees.
+*   🔓 **Uncensored by Design:** We believe in creative freedom. PlotCaption is built to explore the full spectrum of fictional characters and themes, without judgment.
+*   🧠 **Pluggable AI Brains:** Comes with profiles for popular Vision-Language Models (VLMs) like ToriiGate and JoyCaption. Want to add a new one? It's as easy as editing a Python file.
+*   ✍️ **Customizable Prompts:** Don't like the style of the character cards or SD prompts? Just edit the `.txt` files in the `prompts` folder. You have full control over the AI's creative direction.
+*   🖥️ **Slick, Modern UI:** A multi-tabbed, dark-themed interface built with `tkinter` that's easy to navigate and won't burn your retinas at 3 AM.
+*   🔄 **Multi-Threaded & Responsive:** The UI won't freeze while the AI is thinking. We're not monsters.
+
+## 🚀 How it Works (The 3-Step Magic Trick)
+
+The whole process is broken down into three simple tabs:
+
+1.  **Caption Tab:**
+    *   Load your local VLM of choice from the dropdown.
+    *   Drag and drop your image.
+    *   Click "Generate Description". The AI will analyze the image and spit out a detailed caption and a list of booru-style tags.
+
+2.  **Generate Tab:**
+    *   **Stage 1 (Character Card):** The app takes the caption and tags and automatically creates a prompt to generate a full character card: personality, kinks, backstory, the works. Click "Generate Card" to get your lore.
+    *   **Stage 2 (SD Prompt):** Now, armed with the original caption, tags, AND the new character card, the app creates a super-detailed Stable Diffusion prompt. Click "Generate SD" and behold the glorious, ready-to-use prompt.
+
+3.  **Settings Tab:**
+    *   If you want to use a remote LLM (like via an OpenAI-compatible API) for the generation steps, you can enter your API key, base URL, and model name here.
+
+## 🛠️ Installation
+
+Ready to get started? Here's the drill:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/PlotCaption.git
+    cd PlotCaption
+    ```
+2.  **Install the dependencies:**
+    It's recommended to use a virtual environment.
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    pip install -r requirements.txt
+    ```
+3.  **Run the application:**
+    ```bash
+    python plotcaption.py
+    ```
+    That's it! The GUI should appear, and you can start your creative journey.
+
+## 🔧 For the Tinkerers (Modding & Hacking)
+
+We know you can't resist looking under the hood. Here's where the fun stuff is:
+
+*   **Adding New VLMs:** Open up `vlm_profiles.py`. You'll see a dictionary called `VLM_PROFILES`. Just copy one of the existing profiles, change the `model_id`, and adjust the `loader_function`, `generation_function`, and `parser` functions as needed for your new model. This gives you full control over how the app interacts with different AI brains.
+*   **Customizing the Output:** Don't like the format of the character cards? Think you can write a better SD prompt template? Head over to the `prompts/` directory.
+    *   `character_card_prompt.txt`: This is the master template for generating lore. Tweak it to change the structure, tone, and content of the character cards.
+    *   `stable_diffusion_prompt.txt`: This file controls how the Stable Diffusion prompts are generated. Add your favorite embeddings, adjust the negative prompts, or completely change the structure.
+
+## ⚠️ A Note on Content
+
+PlotCaption is a tool for creative expression in fictional contexts. It is "uncensored" in the sense that it does not have hard-coded filters that prevent the exploration of mature themes. Like any powerful tool, it's up to you to use it responsibly.
