@@ -19,9 +19,13 @@ class ModelHandler:
             raise ValueError("A valid VLMProfile must be provided.")
 
         # Call the specific loader function from the profile
-        print(loaded_profile.model_id)
-        print(loaded_profile.loader_function)
-        self.model, self.processor = loaded_profile.loader_function(loaded_profile.model_id)
+        # Add a print statement for better logging
+        print(f"Loading {loaded_profile.model_id} onto device: {self.device}")
+
+        self.model, self.processor = loaded_profile.loader_function(
+            loaded_profile.model_id,
+            self.device  # Pass the device string here
+        )
 
     def unload_model(self):
         """

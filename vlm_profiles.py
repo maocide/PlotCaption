@@ -21,22 +21,22 @@ class VLMProfile:
     tags_parser: Callable[[str], Dict[str, str]]
     # This is the new field! It holds one of the functions we just defined.
     generation_function: Callable[[any, any, any, str, str, any], str]
-    loader_function: Callable[[str], Tuple[Any, Any]]
+    loader_function: Callable[[str, str], Tuple[Any, Any]]
 
-def load_joycaption_model(model_name: str) -> Tuple[Any, Any]:
+def load_joycaption_model(model_name: str, device: str) -> Tuple[Any, Any]:
     """Loads a LLaVA-based VLM model and processor."""
     print("Loading JoyCaption model...")
     processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
     model = LlavaForConditionalGeneration.from_pretrained(
         model_name,
         torch_dtype=torch.bfloat16,
-        device_map="auto",
+        device_map=device,
         trust_remote_code=True
     )
     model.eval()
     return model, processor
 
-def load_toriigate_model(model_name: str) -> Tuple[Any, Any]:
+def load_toriigate_model(model_name: str, device: str) -> Tuple[Any, Any]:
     """Loads the Minthy/ToriiGate-v0.4-7B model and processor."""
     print("Loading Toriigate model...")
     config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
@@ -46,7 +46,7 @@ def load_toriigate_model(model_name: str) -> Tuple[Any, Any]:
         model_name,
         config=config,
         trust_remote_code=True,
-        device_map="auto",
+        device_map=device,
         torch_dtype=torch.bfloat16
     )
     model.eval()
