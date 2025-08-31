@@ -9,7 +9,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
     BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, COPY_IMAGE_FILE, \
-    COPY_IMAGE_HOVER_FILE
+    COPY_IMAGE_HOVER_FILE, CARD_USER_ROLE, CARD_CHAR_TO_ANALYZE, SD_CHAR_TO_ANALYZE
 import ai_utils
 from history_manager import HistoryManager
 from model_handler import ModelHandler
@@ -616,8 +616,8 @@ class VLM_GUI(TkinterDnD.Tk):
             template_name=template_name,
             caption=caption,
             tags=tags,
-            character_to_analyze="Main Character",
-            user_role="develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)",
+            character_to_analyze=CARD_CHAR_TO_ANALYZE,
+            user_role=CARD_USER_ROLE,
             user_placeholder="{{user}}"
         )
 
@@ -636,7 +636,7 @@ class VLM_GUI(TkinterDnD.Tk):
             caption=caption,
             tags=tags,
             character_card=character_card,
-            character_to_analyze="Character from character card, Main Character"
+            character_to_analyze=SD_CHAR_TO_ANALYZE
         )
 
         self.sd_text_box.config(state=tk.NORMAL)

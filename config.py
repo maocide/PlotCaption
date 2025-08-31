@@ -27,3 +27,8 @@ BUTTON_PRESSED_COLOR = "#3A3A3A"
 TEXT_BG_COLOR = "#3C3C3C"
 INSERT_BACKGROUND_COLOR = "white"
 PLACEHOLDER_FG_COLOR = "gray"
+
+# --- Prompt Generation ---
+CARD_USER_ROLE = "develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)"
+CARD_CHAR_TO_ANALYZE = "Main Character"
+SD_CHAR_TO_ANALYZE = "Character from character card, Main Character"
