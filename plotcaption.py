@@ -252,36 +252,22 @@ class VLM_GUI(TkinterDnD.Tk):
     def _on_prompt_template_selected(self, event, prompt_type):
         """
         Handles the event when a new prompt template is selected.
-        Loads the template and immediately repopulates it with existing data.
+        Triggers the repopulation of the corresponding prompt text box,
+        ensuring all updates go through the placeholder replacement logic.
         """
-        # First, load the raw template content into the text box
-        if prompt_type == 'card':
-            template_name = self.card_template_combo.get()
-            filename = f"{template_name}_character_card.txt"
-            content = _load_prompt_template(filename)
-            self.card_text_box.config(state=tk.NORMAL)
-            self.card_text_box.delete("1.0", tk.END)
-            self.card_text_box.insert(tk.END, content)
-        elif prompt_type == 'sd':
-            template_name = self.sd_template_combo.get()
-            filename = f"{template_name}_stable_diffusion.txt"
-            content = _load_prompt_template(filename)
-            self.sd_text_box.config(state=tk.NORMAL)
-            self.sd_text_box.delete("1.0", tk.END)
-            self.sd_text_box.insert(tk.END, content)
-
-        # Now, try to repopulate it with the current data
+        # Get the current data from the UI.
+        # These will be empty strings if no data is present.
         final_caption = self.output_caption_text.get("1.0", tk.END).strip()
         final_tags = self.output_tags_text.get("1.0", tk.END).strip()
 
-        if final_caption and final_tags:
-            if prompt_type == 'card':
-                self._populate_generate_card(final_caption, final_tags)
-            elif prompt_type == 'sd':
-                # SD prompt also needs the character card
-                final_card = self.card_output_text_box.get("1.0", tk.END).strip()
-                if final_card:
-                    self._populate_generate_SD(final_caption, final_tags, final_card)
+        if prompt_type == 'card':
+            # Always call _populate_generate_card. It will handle generating
+            # the prompt with or without data to fill the placeholders.
+            self._populate_generate_card(final_caption, final_tags)
+        elif prompt_type == 'sd':
+            # Always call _populate_generate_SD, which also needs the card text.
+            final_card = self.card_output_text_box.get("1.0", tk.END).strip()
+            self._populate_generate_SD(final_caption, final_tags, final_card)
 
     def _save_template_settings(self):
         """Saves only the last selected prompt templates."""
@@ -635,6 +621,7 @@ class VLM_GUI(TkinterDnD.Tk):
             user_placeholder="{{user}}"
         )
 
+        self.card_text_box.config(state=tk.NORMAL)
         self.card_text_box.delete("1.0", tk.END)
         self.card_text_box.insert(tk.END, card_prompt)
 
