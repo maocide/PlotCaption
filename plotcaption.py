@@ -194,8 +194,8 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # --- Prompt Template Discovery ---
         prompt_templates = discover_prompt_templates()
-        self.card_prompt_templates = prompt_templates.get("card_prompts", ["Default"])
-        self.sd_prompt_templates = prompt_templates.get("sd_prompts", ["Default"])
+        self.card_prompt_templates = prompt_templates.get("card_prompts", ["NSFW"])
+        self.sd_prompt_templates = prompt_templates.get("sd_prompts", ["NSFW"])
 
         # --- Create Frame for LLM Tab ---
         self.main_llm_frame = ttk.Frame(self.tab2_frame, style='Dark.TFrame', padding=10)
@@ -226,18 +226,18 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # --- Load Last Used Templates ---
         settings = load_settings()
-        last_card_template = settings.get("last_card_template", "Default")
-        last_sd_template = settings.get("last_sd_template", "Default")
+        last_card_template = settings.get("last_card_template", "NSFW")
+        last_sd_template = settings.get("last_sd_template", "NSFW")
 
         if last_card_template in self.card_prompt_templates:
             self.card_template_combo.set(last_card_template)
         else:
-            self.card_template_combo.set("Default")
+            self.card_template_combo.set("NSFW")
 
         if last_sd_template in self.sd_prompt_templates:
             self.sd_template_combo.set(last_sd_template)
         else:
-            self.sd_template_combo.set("Default")
+            self.sd_template_combo.set("NSFW")
 
         # Manually trigger the loading of the content for the default/saved templates
         self._on_prompt_template_selected(None, 'card')
@@ -252,7 +252,9 @@ class VLM_GUI(TkinterDnD.Tk):
     def _on_prompt_template_selected(self, event, prompt_type):
         """
         Handles the event when a new prompt template is selected.
+        Loads the template and immediately repopulates it with existing data.
         """
+        # First, load the raw template content into the text box
         if prompt_type == 'card':
             template_name = self.card_template_combo.get()
             filename = f"{template_name}_character_card.txt"
@@ -267,6 +269,19 @@ class VLM_GUI(TkinterDnD.Tk):
             self.sd_text_box.config(state=tk.NORMAL)
             self.sd_text_box.delete("1.0", tk.END)
             self.sd_text_box.insert(tk.END, content)
+
+        # Now, try to repopulate it with the current data
+        final_caption = self.output_caption_text.get("1.0", tk.END).strip()
+        final_tags = self.output_tags_text.get("1.0", tk.END).strip()
+
+        if final_caption and final_tags:
+            if prompt_type == 'card':
+                self._populate_generate_card(final_caption, final_tags)
+            elif prompt_type == 'sd':
+                # SD prompt also needs the character card
+                final_card = self.card_output_text_box.get("1.0", tk.END).strip()
+                if final_card:
+                    self._populate_generate_SD(final_caption, final_tags, final_card)
 
     def _on_closing(self):
         """
