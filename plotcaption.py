@@ -220,7 +220,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # --- UI Setup ---
         self._setup_widgets_vlm(self.tab1_frame)
-        self._setup_widgets_llm(self.tab2_frame) # Pass tab2_frame, not main_llm_frame
+        self._setup_widgets_llm(self.tab2_frame)
         self._setup_widgets_settings(self.tab3_frame)
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
@@ -286,9 +286,8 @@ class VLM_GUI(TkinterDnD.Tk):
     def _on_closing(self):
         """
         Handles the application window closing event.
-        Saves settings and history, then closes the application.
+        Saves history and closes the application.
         """
-        self._save_api_settings() # Save API settings first
         self.history_manager.save_on_exit()
         self.destroy()
 
@@ -372,7 +371,7 @@ class VLM_GUI(TkinterDnD.Tk):
             label_text="Output Character Card:",
             grid_row=4, # Adjusted row
             grid_column=0,
-            copy_command=self._copy_card_output_to_clipboard  # <-- Pass the command here
+            copy_command=self._copy_card_output_to_clipboard
         )
 
         self.sd_output_text_box = self._create_labeled_textbox(
@@ -380,7 +379,7 @@ class VLM_GUI(TkinterDnD.Tk):
             label_text="Output SD Prompt:",
             grid_row=4, # Adjusted row
             grid_column=1,
-            copy_command=self._copy_sd_output_to_clipboard  # <-- And here!
+            copy_command=self._copy_sd_output_to_clipboard
         )
 
         # ... (the rest of the function with the generate buttons is the same) ...
@@ -556,7 +555,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.test_button = ttk.Button(button_frame, text="Test", command=self._test_api_connection_threaded, style='Dark.TButton')
         self.test_button.pack(side=tk.LEFT)
 
-    def _save_api_settings(self):
+    def _save_api_settings(self, silent=False):
         """Handles the Save button click event in the Settings tab."""
         # This now also saves the last selected templates
         success = save_settings(
@@ -567,11 +566,13 @@ class VLM_GUI(TkinterDnD.Tk):
             last_sd_template=self.sd_template_combo.get()
         )
         if success:
-            self.update_status("API settings saved successfully.")
-            messagebox.showinfo("Settings Saved", "Your API settings have been saved.")
+            if not silent:
+                self.update_status("API settings saved successfully.")
+                messagebox.showinfo("Settings Saved", "Your API settings have been saved.")
         else:
-            self.update_status("Error: Failed to save API settings.")
-            messagebox.showerror("Error", "Could not save settings. Check console for details.")
+            if not silent:
+                self.update_status("Error: Failed to save API settings.")
+                messagebox.showerror("Error", "Could not save settings. Check console for details.")
 
     def _test_api_connection_threaded(self):
         """
@@ -940,8 +941,6 @@ class VLM_GUI(TkinterDnD.Tk):
         self.sd_generate_button.config(state='disabled')
         self.card_text_box.config(state='disabled')
         self.sd_text_box.config(state='disabled')
-        self.card_template_combo.config(state='disabled')
-        self.sd_template_combo.config(state='disabled')
 
 
         # --- Configure UI based on the new state ---
@@ -953,8 +952,6 @@ class VLM_GUI(TkinterDnD.Tk):
         elif self.current_state == AppState.MODEL_LOADING:
             self.load_button.config(text="Loading...")
             self.update_status(f"Loading model: {self.model_selection_combo.get()}...")
-            self.card_template_combo.config(state='disabled')
-            self.sd_template_combo.config(state='disabled')
 
         elif self.current_state == AppState.MODEL_LOADED:
             self.load_button.config(text="Loaded")
@@ -981,8 +978,6 @@ class VLM_GUI(TkinterDnD.Tk):
             self.card_generate_button.config(state='normal')
             self.sd_text_box.config(state='disabled')
             self.sd_generate_button.config(state='normal')
-            self.card_template_combo.config(state='readonly')
-            self.sd_template_combo.config(state='readonly')
             self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
@@ -994,8 +989,6 @@ class VLM_GUI(TkinterDnD.Tk):
             self.card_generate_button.config(state='normal')
             self.sd_text_box.config(state='normal')
             self.sd_generate_button.config(state='normal')
-            self.card_template_combo.config(state='readonly')
-            self.sd_template_combo.config(state='readonly')
             self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
@@ -1005,8 +998,6 @@ class VLM_GUI(TkinterDnD.Tk):
             self.card_generate_button.config(state='disabled')
             self.sd_generate_button.config(state='disabled')
             self.unload_button.config(state='normal')
-            self.card_template_combo.config(state='disabled')
-            self.sd_template_combo.config(state='disabled')
             self.update_status("Generating via API...")
 
 

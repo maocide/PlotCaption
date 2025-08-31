@@ -70,9 +70,20 @@ Ready to get started? Here's the drill:
 We know you can't resist looking under the hood. Here's where the fun stuff is:
 
 *   **Adding New VLMs:** Open up `vlm_profiles.py`. You'll see a dictionary called `VLM_PROFILES`. Just copy one of the existing profiles, change the `model_id`, and adjust the `loader_function`, `generation_function`, and `parser` functions as needed for your new model. This gives you full control over how the app interacts with different AI brains.
-*   **Customizing the Output:** Don't like the format of the character cards? Think you can write a better SD prompt template? Head over to the `prompts/` directory.
-    *   `character_card_prompt.txt`: This is the master template for generating lore. Tweak it to change the structure, tone, and content of the character cards.
-    *   `stable_diffusion_prompt.txt`: This file controls how the Stable Diffusion prompts are generated. Add your favorite embeddings, adjust the negative prompts, or completely change the structure.
+*   **Becoming a Prompt Master (Customizing the Output):** Don't like the format of the character cards? Think you can write a better SD prompt template? You're in luck, you beautiful control freak. We've made the whole system plug-and-play.
+
+    Head over to the `prompts/` directory. This is your new playground.
+
+    The app automatically finds any `.txt` file in this folder that ends with either `_character_card.txt` or `_stable_diffusion.txt`. The part of the filename *before* that suffix becomes the template's name, and it will magically appear in the dropdown menus on the "Generate" tab.
+
+    For example, to create a new, "Poetic" style for character cards, simply:
+    1.  Copy `SFW_character_card.txt` to `Poetic_character_card.txt`.
+    2.  Open `Poetic_character_card.txt` and rewrite it to sound like Shakespeare after three espressos.
+    3.  Relaunch the app.
+
+    Voilà! "Poetic" will now be an option in the character card template dropdown. You can create as many as you want. Go wild. The app will even remember the last one you used for each type. The included templates are:
+    *   `NSFW_...`: The original, spicy-by-default templates.
+    *   `SFW_...`: A more neutral, "safe-for-work" version that is descriptive but less... thirsty.
 
 ## ⚠️ A Note on Content
 
