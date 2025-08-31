@@ -44,6 +44,7 @@ def discover_prompt_templates() -> dict:
     return {"card_prompts": sorted(card_prompts), "sd_prompts": sorted(sd_prompts)}
 
 def generate_character_card_prompt(
+        template_name: str,
         character_to_analyze: str,
         user_role: str,
         user_placeholder: str,
@@ -54,7 +55,8 @@ def generate_character_card_prompt(
     Generates a prompt for creating a character card by loading a template
     and replacing placeholders.
     """
-    template = _load_prompt_template("Default_character_card.txt")
+    filename = f"{template_name}_character_card.txt"
+    template = _load_prompt_template(filename)
 
     prompt = template.replace("[[[character_to_analyze]]]", character_to_analyze)
     prompt = prompt.replace("[[[user_role]]]", user_role)
@@ -66,6 +68,7 @@ def generate_character_card_prompt(
 
 
 def generate_stable_diffusion_prompt(
+        template_name: str,
         character_to_analyze: str,
         caption: str,
         tags: str,
@@ -75,7 +78,8 @@ def generate_stable_diffusion_prompt(
     Generates a Stable Diffusion prompt by loading a template and
     replacing placeholders.
     """
-    template = _load_prompt_template("Default_stable_diffusion.txt")
+    filename = f"{template_name}_stable_diffusion.txt"
+    template = _load_prompt_template(filename)
 
     prompt = template.replace("[[[character_to_analyze]]]", character_to_analyze)
     prompt = prompt.replace("[[[caption]]]", caption)

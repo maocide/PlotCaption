@@ -623,38 +623,38 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def _populate_generate_card(self, caption: str, tags: str):
         """
-        Populates the Character Card prompt by replacing placeholders in the
-        currently selected template.
+        Generates prompts based on VLM output and populates the Generate tab.
         """
-        current_prompt = self.card_text_box.get("1.0", tk.END)
-
-        # Replace placeholders
-        new_prompt = current_prompt.replace("[[[caption]]]", caption)
-        new_prompt = new_prompt.replace("[[[tags]]]", tags)
-        new_prompt = new_prompt.replace("[[[character_to_analyze]]]", "Main Character")
-        new_prompt = new_prompt.replace("[[[user_role]]]", "develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)")
-        new_prompt = new_prompt.replace("[[[user_placeholder]]]", "{{user}}")
+        template_name = self.card_template_combo.get()
+        card_prompt = generate_character_card_prompt(
+            template_name=template_name,
+            caption=caption,
+            tags=tags,
+            character_to_analyze="Main Character",
+            user_role="develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)",
+            user_placeholder="{{user}}"
+        )
 
         self.card_text_box.delete("1.0", tk.END)
-        self.card_text_box.insert(tk.END, new_prompt)
-
+        self.card_text_box.insert(tk.END, card_prompt)
 
     def _populate_generate_SD(self, caption: str, tags: str, character_card: str):
         """
         Populates the Stable Diffusion prompt by replacing placeholders in the
         currently selected template.
         """
-        current_prompt = self.sd_text_box.get("1.0", tk.END)
-
-        # Replace placeholders
-        new_prompt = current_prompt.replace("[[[caption]]]", caption)
-        new_prompt = new_prompt.replace("[[[tags]]]", tags)
-        new_prompt = new_prompt.replace("[[[character_card]]]", character_card)
-        new_prompt = new_prompt.replace("[[[character_to_analyze]]]", "Character from character card, Main Character")
+        template_name = self.sd_template_combo.get()
+        sd_prompt = generate_stable_diffusion_prompt(
+            template_name=template_name,
+            caption=caption,
+            tags=tags,
+            character_card=character_card,
+            character_to_analyze="Character from character card, Main Character"
+        )
 
         self.sd_text_box.config(state=tk.NORMAL)
         self.sd_text_box.delete("1.0", tk.END)
-        self.sd_text_box.insert(tk.END, new_prompt)
+        self.sd_text_box.insert(tk.END, sd_prompt)
 
     def _on_model_selected(self, event=None):
         """
