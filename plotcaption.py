@@ -283,11 +283,19 @@ class VLM_GUI(TkinterDnD.Tk):
                 if final_card:
                     self._populate_generate_SD(final_caption, final_tags, final_card)
 
+    def _save_template_settings(self):
+        """Saves only the last selected prompt templates."""
+        save_settings(
+            last_card_template=self.card_template_combo.get(),
+            last_sd_template=self.sd_template_combo.get()
+        )
+
     def _on_closing(self):
         """
         Handles the application window closing event.
         Saves history and closes the application.
         """
+        self._save_template_settings()
         self.history_manager.save_on_exit()
         self.destroy()
 
