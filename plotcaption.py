@@ -14,7 +14,7 @@ import ai_utils
 from history_manager import HistoryManager
 from model_handler import ModelHandler
 from settings_manager import save_settings, load_settings
-from prompts import generate_character_card_prompt, generate_stable_diffusion_prompt
+from prompts import generate_character_card_prompt, generate_stable_diffusion_prompt, discover_prompt_templates, _load_prompt_template
 from ui_components import AutocompleteEntry
 from vlm_profiles import VLMProfile, VLM_PROFILES
 
@@ -365,7 +365,7 @@ class VLM_GUI(TkinterDnD.Tk):
             label_text="Output SD Prompt:",
             grid_row=4, # Adjusted row
             grid_column=1,
-            copy_command=self.copy_sd_output_to_clipboard  # <-- And here!
+            copy_command=self._copy_sd_output_to_clipboard  # <-- And here!
         )
 
         # ... (the rest of the function with the generate buttons is the same) ...
