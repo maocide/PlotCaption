@@ -11,9 +11,8 @@ from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_
     BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, COPY_IMAGE_FILE, \
     COPY_IMAGE_HOVER_FILE, CARD_USER_ROLE, CARD_CHAR_TO_ANALYZE, SD_CHAR_TO_ANALYZE
 import ai_utils
-from history_manager import HistoryManager
+from persistence_manager import PersistenceManager
 from model_handler import ModelHandler
-from settings_manager import save_settings, load_settings
 from prompts import generate_character_card_prompt, generate_stable_diffusion_prompt, discover_prompt_templates, _load_prompt_template
 from ui_components import AutocompleteEntry
 from vlm_profiles import VLMProfile, VLM_PROFILES
@@ -58,7 +57,8 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # --- Handlers ---
         self.model_handler = ModelHandler()
-        self.history_manager = HistoryManager()
+        self.persistence = PersistenceManager()
+        self.settings = self.persistence.load_settings()
 
         # --- State Variables ---
         self.loaded_profile: VLMProfile = None
@@ -225,9 +225,8 @@ class VLM_GUI(TkinterDnD.Tk):
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
         # --- Load Last Used Templates ---
-        settings = load_settings()
-        last_card_template = settings.get("last_card_template", "NSFW")
-        last_sd_template = settings.get("last_sd_template", "NSFW")
+        last_card_template = self.settings.get("last_card_template", "NSFW")
+        last_sd_template = self.settings.get("last_sd_template", "NSFW")
 
         if last_card_template in self.card_prompt_templates:
             self.card_template_combo.set(last_card_template)
@@ -269,20 +268,19 @@ class VLM_GUI(TkinterDnD.Tk):
             final_card = self.card_output_text_box.get("1.0", tk.END).strip()
             self._populate_generate_SD(final_caption, final_tags, final_card)
 
-    def _save_template_settings(self):
-        """Saves only the last selected prompt templates."""
-        save_settings(
-            last_card_template=self.card_template_combo.get(),
-            last_sd_template=self.sd_template_combo.get()
-        )
-
     def _on_closing(self):
         """
         Handles the application window closing event.
-        Saves history and closes the application.
+        Saves the complete application state and closes the application.
         """
-        self._save_template_settings()
-        self.history_manager.save_on_exit()
+        # Update settings with the final state from the UI
+        self.settings['last_used_vlm'] = self.model_selection_combo.get()
+        self.settings['last_card_template'] = self.card_template_combo.get()
+        self.settings['last_sd_template'] = self.sd_template_combo.get()
+
+        # Save all settings
+        self.persistence.save_settings(self.settings)
+
         self.destroy()
 
     def _on_copy_enter(self, event):
@@ -533,11 +531,10 @@ class VLM_GUI(TkinterDnD.Tk):
         self.llm_key_entry = ttk.Entry(top_frame,  style='Dark.TEntry', show='*')
         self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
-        # Load existing settings
-        api_settings = load_settings()
-        self.character_card_prompt_entry.insert(0, api_settings.get("base_url", ""))
-        self.llm_model_entry.insert(0, api_settings.get("model_name", ""))
-        self.llm_key_entry.insert(0, api_settings.get("api_key", ""))
+        # Load existing settings from the unified settings object
+        self.character_card_prompt_entry.insert(0, self.settings.get("base_url", ""))
+        self.llm_model_entry.insert(0, self.settings.get("model_name", ""))
+        self.llm_key_entry.insert(0, self.settings.get("api_key", ""))
 
         # --- Top Frame for Api data ---
         button_frame = ttk.Frame(top_frame, style='Dark.TFrame')
@@ -551,14 +548,14 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def _save_api_settings(self, silent=False):
         """Handles the Save button click event in the Settings tab."""
-        # This now also saves the last selected templates
-        success = save_settings(
-            api_key=self.llm_key_entry.get(),
-            model_name=self.llm_model_entry.get(),
-            base_url=self.character_card_prompt_entry.get(),
-            last_card_template=self.card_template_combo.get(),
-            last_sd_template=self.sd_template_combo.get()
-        )
+        # Update the settings dictionary with the current values from the UI
+        self.settings['api_key'] = self.llm_key_entry.get()
+        self.settings['model_name'] = self.llm_model_entry.get()
+        self.settings['base_url'] = self.character_card_prompt_entry.get()
+
+        # Save the updated settings
+        success = self.persistence.save_settings(self.settings)
+
         if success:
             if not silent:
                 self.update_status("API settings saved successfully.")
@@ -689,8 +686,12 @@ class VLM_GUI(TkinterDnD.Tk):
         )
         self.model_selection_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
 
-        # Set initial value
-        if list(VLM_PROFILES.keys()):
+        # Set initial value from saved settings or default
+        last_vlm = self.settings.get('last_used_vlm')
+        vlm_options = list(VLM_PROFILES.keys())
+        if last_vlm in vlm_options:
+            self.model_selection_combo.set(last_vlm)
+        elif vlm_options:
             self.model_selection_combo.current(0)
 
         self.model_selection_combo.bind("<<ComboboxSelected>>", self._on_model_selected)
