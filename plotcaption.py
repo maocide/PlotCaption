@@ -192,12 +192,56 @@ class VLM_GUI(TkinterDnD.Tk):
         self.copy_icon = tk.PhotoImage(file=COPY_IMAGE_FILE)
         self.copy_icon_hover = tk.PhotoImage(file=COPY_IMAGE_HOVER_FILE)
 
+        # --- Prompt Template Discovery ---
+        prompt_templates = discover_prompt_templates()
+        self.card_prompt_templates = prompt_templates.get("card_prompts", ["Default"])
+        self.sd_prompt_templates = prompt_templates.get("sd_prompts", ["Default"])
+
+        # --- Create Frame for LLM Tab ---
+        self.main_llm_frame = ttk.Frame(self.tab2_frame, style='Dark.TFrame', padding=10)
+        self.main_llm_frame.pack(expand=True, fill="both")
+
+        # --- Create Comboboxes ---
+        self.card_template_combo = ttk.Combobox(
+            self.main_llm_frame,
+            values=self.card_prompt_templates,
+            state='readonly',
+            style='Dark.TCombobox'
+        )
+        self.card_template_combo.bind("<<ComboboxSelected>>", lambda event: self._on_prompt_template_selected(event, 'card'))
+
+        self.sd_template_combo = ttk.Combobox(
+            self.main_llm_frame,
+            values=self.sd_prompt_templates,
+            state='readonly',
+            style='Dark.TCombobox'
+        )
+        self.sd_template_combo.bind("<<ComboboxSelected>>", lambda event: self._on_prompt_template_selected(event, 'sd'))
+
         # --- UI Setup ---
         self._setup_widgets_vlm(self.tab1_frame)
-        self._setup_widgets_llm(self.tab2_frame)
+        self._setup_widgets_llm(self.tab2_frame) # Pass tab2_frame, not main_llm_frame
         self._setup_widgets_settings(self.tab3_frame)
         self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
+        # --- Load Last Used Templates ---
+        settings = load_settings()
+        last_card_template = settings.get("last_card_template", "Default")
+        last_sd_template = settings.get("last_sd_template", "Default")
+
+        if last_card_template in self.card_prompt_templates:
+            self.card_template_combo.set(last_card_template)
+        else:
+            self.card_template_combo.set("Default")
+
+        if last_sd_template in self.sd_prompt_templates:
+            self.sd_template_combo.set(last_sd_template)
+        else:
+            self.sd_template_combo.set("Default")
+
+        # Manually trigger the loading of the content for the default/saved templates
+        self._on_prompt_template_selected(None, 'card')
+        self._on_prompt_template_selected(None, 'sd')
 
         self.current_state = None
         self.set_state(AppState.IDLE)
@@ -205,11 +249,31 @@ class VLM_GUI(TkinterDnD.Tk):
         self.current_state = None  # Initialize it
         self.set_state(AppState.IDLE)  # Set the initial state
 
+    def _on_prompt_template_selected(self, event, prompt_type):
+        """
+        Handles the event when a new prompt template is selected.
+        """
+        if prompt_type == 'card':
+            template_name = self.card_template_combo.get()
+            filename = f"{template_name}_character_card.txt"
+            content = _load_prompt_template(filename)
+            self.card_text_box.config(state=tk.NORMAL)
+            self.card_text_box.delete("1.0", tk.END)
+            self.card_text_box.insert(tk.END, content)
+        elif prompt_type == 'sd':
+            template_name = self.sd_template_combo.get()
+            filename = f"{template_name}_stable_diffusion.txt"
+            content = _load_prompt_template(filename)
+            self.sd_text_box.config(state=tk.NORMAL)
+            self.sd_text_box.delete("1.0", tk.END)
+            self.sd_text_box.insert(tk.END, content)
+
     def _on_closing(self):
         """
         Handles the application window closing event.
-        Saves history and closes the application.
+        Saves settings and history, then closes the application.
         """
+        self._save_api_settings() # Save API settings first
         self.history_manager.save_on_exit()
         self.destroy()
 
@@ -262,53 +326,55 @@ class VLM_GUI(TkinterDnD.Tk):
         return text_box
 
     def _setup_widgets_llm(self, parent_frame):
-        # ... (main_frame setup is the same) ...
-        main_frame = ttk.Frame(parent_frame, style='Dark.TFrame', padding=10)
-        main_frame.pack(expand=True, fill="both")
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(1, weight=1)
-        main_frame.rowconfigure(4, weight=1)
+        # The main_frame is now self.main_llm_frame, created in __init__
+        self.main_llm_frame.columnconfigure(0, weight=1)
+        self.main_llm_frame.columnconfigure(1, weight=1)
+        self.main_llm_frame.rowconfigure(2, weight=1) # Adjusted row for text box
+        self.main_llm_frame.rowconfigure(5, weight=1) # Adjusted row for text box
+
+        # --- Place Comboboxes ---
+        self.card_template_combo.grid(row=0, column=0, padx=5, pady=(0, 5), sticky="ew")
+        self.sd_template_combo.grid(row=0, column=1, padx=5, pady=(0, 5), sticky="ew")
 
         # --- Input boxes don't get a copy button ---
         self.card_text_box = self._create_labeled_textbox(
-            parent=main_frame,
+            parent=self.main_llm_frame,
             label_text="Character card Prompt:",
-            grid_row=0,
+            grid_row=1, # Adjusted row
             grid_column=0
         )
 
         self.sd_text_box = self._create_labeled_textbox(
-            parent=main_frame,
+            parent=self.main_llm_frame,
             label_text="SD Prompt:",
-            grid_row=0,
+            grid_row=1, # Adjusted row
             grid_column=1
         )
 
         # --- Output boxes DO get a copy button! ---
         self.card_output_text_box = self._create_labeled_textbox(
-            parent=main_frame,
+            parent=self.main_llm_frame,
             label_text="Output Character Card:",
-            grid_row=3,
+            grid_row=4, # Adjusted row
             grid_column=0,
             copy_command=self._copy_card_output_to_clipboard  # <-- Pass the command here
         )
 
         self.sd_output_text_box = self._create_labeled_textbox(
-            parent=main_frame,
+            parent=self.main_llm_frame,
             label_text="Output SD Prompt:",
-            grid_row=3,
+            grid_row=4, # Adjusted row
             grid_column=1,
-            copy_command=self._copy_sd_output_to_clipboard  # <-- And here!
+            copy_command=self.copy_sd_output_to_clipboard  # <-- And here!
         )
 
         # ... (the rest of the function with the generate buttons is the same) ...
-        self.card_generate_button = ttk.Button(main_frame, text="Generate Card", command=self._generate_card_threaded,
+        self.card_generate_button = ttk.Button(self.main_llm_frame, text="Generate Card", command=self._generate_card_threaded,
                                                style='Dark.TButton')
-        self.card_generate_button.grid(row=2, column=0, sticky="ns", pady=5)
-        self.sd_generate_button = ttk.Button(main_frame, text="Generate SD", command=self._generate_sd_prompt_threaded,
+        self.card_generate_button.grid(row=3, column=0, sticky="ns", pady=5) # Adjusted row
+        self.sd_generate_button = ttk.Button(self.main_llm_frame, text="Generate SD", command=self._generate_sd_prompt_threaded,
                                              style='Dark.TButton')
-        self.sd_generate_button.grid(row=2, column=1, sticky="ns", pady=5)
+        self.sd_generate_button.grid(row=3, column=1, sticky="ns", pady=5) # Adjusted row
 
 
     def _generate_card_threaded(self):
@@ -477,10 +543,13 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def _save_api_settings(self):
         """Handles the Save button click event in the Settings tab."""
+        # This now also saves the last selected templates
         success = save_settings(
             api_key=self.llm_key_entry.get(),
             model_name=self.llm_model_entry.get(),
-            base_url=self.character_card_prompt_entry.get()
+            base_url=self.character_card_prompt_entry.get(),
+            last_card_template=self.card_template_combo.get(),
+            last_sd_template=self.sd_template_combo.get()
         )
         if success:
             self.update_status("API settings saved successfully.")
@@ -530,41 +599,38 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def _populate_generate_card(self, caption: str, tags: str):
         """
-        Generates prompts based on VLM output and populates the Generate tab.
+        Populates the Character Card prompt by replacing placeholders in the
+        currently selected template.
         """
-        # 1. Generate the prompt
-        card_prompt = generate_character_card_prompt(
-            caption=caption,
-            tags=tags,
-            character_to_analyze="Main Character",
-            user_role="develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)",
-            user_placeholder="{{user}}"
-        )
-        
+        current_prompt = self.card_text_box.get("1.0", tk.END)
 
-        # 2. Clear existing content
+        # Replace placeholders
+        new_prompt = current_prompt.replace("[[[caption]]]", caption)
+        new_prompt = new_prompt.replace("[[[tags]]]", tags)
+        new_prompt = new_prompt.replace("[[[character_to_analyze]]]", "Main Character")
+        new_prompt = new_prompt.replace("[[[user_role]]]", "develop around Main Character personality (Main Character interest/Lover/Rival/NTR partecipant...)")
+        new_prompt = new_prompt.replace("[[[user_placeholder]]]", "{{user}}")
+
         self.card_text_box.delete("1.0", tk.END)
+        self.card_text_box.insert(tk.END, new_prompt)
 
-        # 3. Insert the new prompt
-        self.card_text_box.insert(tk.END, card_prompt)
 
     def _populate_generate_SD(self, caption: str, tags: str, character_card: str):
+        """
+        Populates the Stable Diffusion prompt by replacing placeholders in the
+        currently selected template.
+        """
+        current_prompt = self.sd_text_box.get("1.0", tk.END)
 
-        # 1. Generate the prompt
-        sd_prompt = generate_stable_diffusion_prompt(
-            caption=caption,
-            tags=tags,
-            character_card=character_card,
-            character_to_analyze="Character from character card, Main Character"
-        )
+        # Replace placeholders
+        new_prompt = current_prompt.replace("[[[caption]]]", caption)
+        new_prompt = new_prompt.replace("[[[tags]]]", tags)
+        new_prompt = new_prompt.replace("[[[character_card]]]", character_card)
+        new_prompt = new_prompt.replace("[[[character_to_analyze]]]", "Character from character card, Main Character")
 
-        # Enable the text box to modify it
         self.sd_text_box.config(state=tk.NORMAL)
-        # 2. Clear existing content
         self.sd_text_box.delete("1.0", tk.END)
-
-        # 3. Insert the new prompt
-        self.sd_text_box.insert(tk.END, sd_prompt)
+        self.sd_text_box.insert(tk.END, new_prompt)
 
     def _on_model_selected(self, event=None):
         """
@@ -859,6 +925,8 @@ class VLM_GUI(TkinterDnD.Tk):
         self.sd_generate_button.config(state='disabled')
         self.card_text_box.config(state='disabled')
         self.sd_text_box.config(state='disabled')
+        self.card_template_combo.config(state='disabled')
+        self.sd_template_combo.config(state='disabled')
 
 
         # --- Configure UI based on the new state ---
@@ -870,6 +938,8 @@ class VLM_GUI(TkinterDnD.Tk):
         elif self.current_state == AppState.MODEL_LOADING:
             self.load_button.config(text="Loading...")
             self.update_status(f"Loading model: {self.model_selection_combo.get()}...")
+            self.card_template_combo.config(state='disabled')
+            self.sd_template_combo.config(state='disabled')
 
         elif self.current_state == AppState.MODEL_LOADED:
             self.load_button.config(text="Loaded")
@@ -896,6 +966,8 @@ class VLM_GUI(TkinterDnD.Tk):
             self.card_generate_button.config(state='normal')
             self.sd_text_box.config(state='disabled')
             self.sd_generate_button.config(state='normal')
+            self.card_template_combo.config(state='readonly')
+            self.sd_template_combo.config(state='readonly')
             self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
@@ -907,6 +979,8 @@ class VLM_GUI(TkinterDnD.Tk):
             self.card_generate_button.config(state='normal')
             self.sd_text_box.config(state='normal')
             self.sd_generate_button.config(state='normal')
+            self.card_template_combo.config(state='readonly')
+            self.sd_template_combo.config(state='readonly')
             self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
@@ -916,6 +990,8 @@ class VLM_GUI(TkinterDnD.Tk):
             self.card_generate_button.config(state='disabled')
             self.sd_generate_button.config(state='disabled')
             self.unload_button.config(state='normal')
+            self.card_template_combo.config(state='disabled')
+            self.sd_template_combo.config(state='disabled')
             self.update_status("Generating via API...")
 
 

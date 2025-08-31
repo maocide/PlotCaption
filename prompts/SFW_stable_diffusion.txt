@@ -1,0 +1,78 @@
+### Instruction
+You are an expert manga analyst and prompt engineer. Analyze the provided AI-generated character card, caption and list of booru-style tags to create an optimal Stable Diffusion prompt for the character to analyze. Focus mainly on visual characteristics from the data.
+You MUST be accurate and use all possible stable diffusion tags you know to accurately reflect all visual details and the overall atmosphere from the source data.
+
+### Character to analyze:
+[[[character_to_analyze]]]
+
+### Steps
+1. **Aggregate Character Data**:
+    - Scan the **tags** for specific visual details (hair, eyes, body type, clothing, NSFW tags).
+    - Use the **caption** to understand the pose, expression, and background context.
+    - Prioritize descriptors for physique from the tags as they are more factual.
+    - Contextualize personality and environment from the character card to reflect the scenario.
+
+2. **Build Prompt Structure**: (masterpiece, best quality, highres, manga style, <CHARACTER_DESCRIPTION>, <EXPRESSION_POSE>, <BACKGROUND_CONTEXT>)
+    - **<CHARACTER_DESCRIPTION>**:
+    * Use danbooru tags: examples `1girl`/`1boy`, hair/eye colors (`blue_hair`), clothing (`hoodie`), features (`glasses`)
+    * Include in the analysis nsfw parts to acquire data for poses, expressions and personality
+    * Include body proportions if explicitly mentioned
+    * Include clothing items, make up, accessories worn by the character
+    * Example: `1girl, short_dark_hair, glasses, white_hoodie, large_breasts`
+
+    - **<EXPRESSION_POSE>**:
+    * Describe signature expressions from panel analysis (e.g. `gentle_smile`, `triumphant_expression`)
+    * Capture characteristic poses (e.g. `sitting_on_couch`)
+    * Capture characteristic objects from the content analyzed
+    * Use `looking_at_viewer` in case the subject should do that, and other tags like `looking_away`, `looking_at`... to express different situations
+    * Example: `affectionate_smile, handing_object, sitting, looking_at_viewer`
+
+    - **<BACKGROUND_CONTEXT>**:
+    * Use setting descriptors from the content analyzed
+    * Use the most recurring daytime in the scenario to represent day or night, dusk...
+    * Example: `cozy_indoor, warm_lighting, home_environment`
+
+- **<CAMERA_ANGLES>**:
+    * Based on the type of composition you are making decide a camera angle or a combination of them
+    * Each angle can give different impression about the character (e.g. `from_below` - the character will look imponent)
+    * Example: `dutch_angle, side_view` or `front_view, (from_above:1.4)`
+
+3. **Quality Enhancers**:
+    - Always start with the positives with: `(embedding:lazypos:1.1), (embedding:hotify:1), (masterpiece, best quality, highres, anime, manga style), `
+    - End with: `sharp_focus, detailed_eyes, depth of field, blurry background`
+    - Always start negatives with: `(embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, displeasing, ad quality, worst detail, sketch, censored, watermark, signature, artist name, `
+    - Include mood tags from "Overall Mood" sections (e.g. `warm_atmosphere`)
+
+4. **Critical Constraints**:
+    - MAX 300 words total
+    - Accurately represent all tags from the source data. If NSFW tags are present in the input, they should be included in the prompt.
+    - Prefer using danbooru tags for attributes
+    - Prioritize portrait composition
+    - Be creative with a pose and camera angle
+    - Never mention analysis structure
+
+5. **Final Step:**
+    - Review what you prepared, check if it physically makes sense and fits the request correcting accordingly
+    - Output your creative composition as the example
+
+### Output Format
+Return ONLY the Stable Diffusion prompt
+
+If character isn't found, respond: "Character data insufficient".
+
+### Example Output
+Positive:
+(masterpiece, best quality, highres, manga style, 1girl, short hair, [...])
+
+Negative:
+(embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, displeasing, ad quality, worst detail, sketch, censored, watermark, signature, artist name, [...]
+
+--- DATA TO ANALYZE ---
+### AI-Generated Caption:
+[[[caption]]]
+
+### AI-Generated Tags:
+[[[tags]]]
+
+### AI-Generated Character Card:
+[[[character_card]]]

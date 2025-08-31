@@ -20,6 +20,29 @@ def _load_prompt_template(filename: str) -> str:
         print(f"ERROR: Could not read prompt template file {filename}: {e}")
         return ""
 
+def discover_prompt_templates() -> dict:
+    """
+    Scans the 'prompts' directory for prompt templates and returns their names.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    prompts_dir = os.path.join(script_dir, "prompts")
+
+    card_prompts = []
+    sd_prompts = []
+
+    try:
+        for filename in os.listdir(prompts_dir):
+            if filename.endswith("_character_card.txt"):
+                prefix = filename.replace("_character_card.txt", "")
+                card_prompts.append(prefix)
+            elif filename.endswith("_stable_diffusion.txt"):
+                prefix = filename.replace("_stable_diffusion.txt", "")
+                sd_prompts.append(prefix)
+    except FileNotFoundError:
+        print(f"ERROR: Prompts directory not found at {prompts_dir}")
+
+    return {"card_prompts": sorted(card_prompts), "sd_prompts": sorted(sd_prompts)}
+
 def generate_character_card_prompt(
         character_to_analyze: str,
         user_role: str,
