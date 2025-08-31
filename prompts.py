@@ -31,7 +31,7 @@ def generate_character_card_prompt(
     Generates a prompt for creating a character card by loading a template
     and replacing placeholders.
     """
-    template = _load_prompt_template("character_card_prompt.txt")
+    template = _load_prompt_template("Default_character_card.txt")
 
     prompt = template.replace("[[[character_to_analyze]]]", character_to_analyze)
     prompt = prompt.replace("[[[user_role]]]", user_role)
@@ -52,7 +52,7 @@ def generate_stable_diffusion_prompt(
     Generates a Stable Diffusion prompt by loading a template and
     replacing placeholders.
     """
-    template = _load_prompt_template("stable_diffusion_prompt.txt")
+    template = _load_prompt_template("Default_stable_diffusion.txt")
 
     prompt = template.replace("[[[character_to_analyze]]]", character_to_analyze)
     prompt = prompt.replace("[[[caption]]]", caption)
