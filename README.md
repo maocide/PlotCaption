@@ -20,10 +20,10 @@ We built PlotCaption for a few special kinds of people. See if you fit the bill:
 ## ✨ Features
 
 *   🔮 **Dual-Output Magic:** The only tool that generates both character lore and a Stable Diffusion prompt from a single image. It's a two-for-one creative explosion!
-*   🏠 **Runs Locally, Stays Local:** Your images and generated text never leave your computer. It's private, secure, and costs you exactly $0 in API fees.
+*   🏠 **Hybrid Local Power:** Core image analysis runs 100% on your machine. For the creative text generation, plug in your own local LLM (like Oobabooga or LM Studio) for total privacy, or connect to your favorite remote API (configured in Settings) for convenience. You're in complete control.
 *   🔓 **Uncensored by Design:** We believe in creative freedom. PlotCaption is built to explore the full spectrum of fictional characters and themes, without judgment.
 *   🧠 **Pluggable AI Brains:** Comes with profiles for popular Vision-Language Models (VLMs) like ToriiGate and JoyCaption. Want to add a new one? It's as easy as editing a Python file.
-*   ✍️ **Customizable Prompts:** Don't like the style of the character cards or SD prompts? Just edit the `.txt` files in the `prompts` folder. You have full control over the AI's creative direction.
+*   🔥 **Dynamic Prompt Templates — Create Your Style:** Don't like the default character card or SD prompt styles? We've made it super easy to customize! Just drop any text file ending in "_character_card.txt" or "_stable_diffusion.txt" into the `prompts/` directory. The app will *dynamically load* them, giving you a powerful dropdown menu in the "Generate" tab to choose between styles like "SFW," "NSFW," or any custom template you create. Full control over the AI's creative direction, for real!
 *   🖥️ **Slick, Modern UI:** A multi-tabbed, dark-themed interface built with `tkinter` that's easy to navigate and won't burn your retinas at 3 AM.
 *   🔄 **Multi-Threaded & Responsive:** The UI won't freeze while the AI is thinking. We're not monsters.
 
@@ -38,7 +38,7 @@ The whole process is broken down into three simple tabs:
 
 2.  **Generate Tab:**
     *   **Stage 1 (Character Card):** The app takes the caption and tags and automatically creates a prompt to generate a full character card: personality, kinks, backstory, the works. Click "Generate Card" to get your lore.
-    *   **Stage 2 (SD Prompt):** Now, armed with the original caption, tags, AND the new character card, the app creates a super-detailed Stable Diffusion prompt. Click "Generate SD" and behold the glorious, ready-to-use prompt.
+    *   **Stage 2 (SD Prompt):** Now, armed with the original caption, tags, AND the new character card, the app **automatically prepares** a super-detailed Stable Diffusion prompt in the "SD Prompt" text box. This is your chance to **review and edit it** if you wish. Once you are happy with the prepared prompt, click "Generate SD" and behold the glorious, ready-to-use prompt.
 
 3.  **Settings Tab:**
     *   If you want to use a remote LLM (like via an OpenAI-compatible API) for the generation steps, you can enter your API key, base URL, and model name here.
