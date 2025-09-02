@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 import appdirs
+from transformers.testing_utils import set_config_for_less_flaky_test
+
 from vlm_profiles import VLM_PROFILES
 
 # Define the application name for the settings folder
@@ -37,6 +39,8 @@ class PersistenceManager:
             # Get the first available VLM profile as the default
             "last_used_vlm": next(iter(VLM_PROFILES), None)
         }
+
+        print(self.settings_file_path)
 
     def load_settings(self) -> dict:
         """

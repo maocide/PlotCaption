@@ -3,13 +3,12 @@
 # Quantized model: "John6666/llama-joycaption-beta-one-hf-llava-nf4"
 # Full model: "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 
-DEFAULT_MODELS = ["Minthy/ToriiGate-v0.4-7B", "fancyfeast/llama-joycaption-alpha-two-hf-llava"]
+DEFAULT_MODELS = ["fancyfeast/llama-joycaption-alpha-two-hf-llava", "Minthy/ToriiGate-v0.4-7B"]
 DEFAULT_PROMPT = """Please provide a long, detailed description of the following image.
 The character(s) in the image is/are: <char></char>.
 Here are grounding tags for better understanding: <tags></tags>."""
 TAGS_PROMPT = """Describe the picture in structured json-like format. Include a field called "suggested_booru_tags" containing a string of relevant tags separated by commas."""
 MAX_THUMBNAIL_SIZE = (400, 400)
-MODEL_HISTORY_FILE = "model_history.json"
 
 COPY_IMAGE_FILE = "assets/copy_image.png"
 COPY_IMAGE_HOVER_FILE = "assets/copy_image_hover.png"

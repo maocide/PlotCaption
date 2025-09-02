@@ -90,6 +90,10 @@ def _make_api_call(
         if presence_penalty is not None:
             call_params["presence_penalty"] = presence_penalty
 
+
+        # For debug
+        print(f"API Call with parameters: {call_params}")
+
         # Add any extra kwargs directly
         call_params.update(kwargs)
 

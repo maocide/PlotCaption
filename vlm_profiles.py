@@ -155,6 +155,17 @@ def parse_simple_model_text(raw_output: str) -> Dict[str, str]:
 
 # --- Update the Profile Database ---
 VLM_PROFILES = {
+    "llama-joycaption-beta-one-hf-llava": VLMProfile(
+        model_id="fancyfeast/llama-joycaption-beta-one-hf-llava",
+        prompt_caption="Write a long detailed description for this image.",  # Your prompt here
+        prompt_tags="Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: artist:, copyright:, character:, meta:, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text.",
+        # Your prompt here
+        system_prompt="You are a helpful image captioner.",
+        caption_parser=parse_simple_model_text,
+        tags_parser=parse_simple_model_text,
+        generation_function=generate_joycaption_description,  # Assign the function
+        loader_function=load_joycaption_model  # Assign the loader
+    ),
     "ToriiGate-v0.4-7B": VLMProfile(
         model_id="Minthy/ToriiGate-v0.4-7B",
         prompt_caption="""Please provide a long, detailed description of the following image.
@@ -171,15 +182,6 @@ Here are grounding tags for better understanding: <tags></tags>.""", # Your prom
         tags_parser=parse_toriigate_tags,
         generation_function=generate_toriigate_description, # Assign the function
         loader_function=load_toriigate_model # Assign the loader
-    ),
-    "llama-joycaption-beta-one-hf-llava": VLMProfile(
-        model_id="fancyfeast/llama-joycaption-beta-one-hf-llava",
-        prompt_caption="Write a long detailed description for this image.", # Your prompt here
-        prompt_tags="Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: artist:, copyright:, character:, meta:, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text.", # Your prompt here
-        system_prompt="You are a helpful image captioner.",
-        caption_parser=parse_simple_model_text,
-        tags_parser=parse_simple_model_text,
-        generation_function=generate_joycaption_description, # Assign the function
-        loader_function=load_joycaption_model  # Assign the loader
     )
+
 }
