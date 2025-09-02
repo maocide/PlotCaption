@@ -425,9 +425,9 @@ class VLM_GUI(TkinterDnD.Tk):
         """
         try:
             # 1. Get credentials and prompt
-            api_key = self.llm_key_entry.get()
-            base_url = self.character_card_prompt_entry.get()
-            model_name = self.llm_model_entry.get()
+            api_key = self.llm_key_entry.get().strip()
+            base_url = self.llm_url_entry.get().strip()
+            model_name = self.llm_model_entry.get().strip()
             prompt = input_widget.get("1.0", tk.END).strip()
 
             if not all([api_key, base_url, model_name, prompt]):
@@ -512,8 +512,8 @@ class VLM_GUI(TkinterDnD.Tk):
         # sticky="w" aligns the text to the West (left) of its grid cell
         url_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-        self.character_card_prompt_entry = ttk.Entry(top_frame, style='Dark.TEntry')
-        self.character_card_prompt_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.llm_url_entry = ttk.Entry(top_frame, style='Dark.TEntry')
+        self.llm_url_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # --- Row 1 ---
         llm_model_label = ttk.Label(top_frame, text="Model:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
@@ -532,7 +532,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
         # Load existing settings from the unified settings object
-        self.character_card_prompt_entry.insert(0, self.settings.get("base_url", ""))
+        self.llm_url_entry.insert(0, self.settings.get("base_url", ""))
         self.llm_model_entry.insert(0, self.settings.get("model_name", ""))
         self.llm_key_entry.insert(0, self.settings.get("api_key", ""))
 
@@ -549,9 +549,9 @@ class VLM_GUI(TkinterDnD.Tk):
     def _save_api_settings(self, silent=False):
         """Handles the Save button click event in the Settings tab."""
         # Update the settings dictionary with the current values from the UI
-        self.settings['api_key'] = self.llm_key_entry.get()
-        self.settings['model_name'] = self.llm_model_entry.get()
-        self.settings['base_url'] = self.character_card_prompt_entry.get()
+        self.settings['api_key'] = self.llm_key_entry.get().strip()
+        self.settings['model_name'] = self.llm_model_entry.get().strip()
+        self.settings['base_url'] = self.llm_url_entry.get().strip()
 
         # Save the updated settings
         success = self.persistence.save_settings(self.settings)
@@ -577,9 +577,9 @@ class VLM_GUI(TkinterDnD.Tk):
         """
         self.update_status("Testing API connection...")
         try:
-            api_key = self.llm_key_entry.get()
-            base_url = self.character_card_prompt_entry.get()
-            model_name = self.llm_model_entry.get()
+            api_key = self.llm_key_entry.get().strip()
+            base_url = self.llm_url_entry.get().strip()
+            model_name = self.llm_model_entry.get().strip()
 
             if not all([api_key, base_url, model_name]):
                 messagebox.showerror("Input Error", "Please fill in all API fields before testing.")
