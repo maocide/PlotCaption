@@ -242,6 +242,14 @@ class VLM_GUI(TkinterDnD.Tk):
         self._on_prompt_template_selected(None, 'card')
         self._on_prompt_template_selected(None, 'sd')
 
+        # Set initial slider values from loaded settings
+        temp_val = self.settings.get("temperature", 0.7)
+        rep_pen_val = self.settings.get("repetition_penalty", 1.1)
+        self.temperature_slider.set(temp_val)
+        self.temperature_value_label.config(text=f"{temp_val:.2f}")
+        self.repetition_penalty_slider.set(rep_pen_val)
+        self.rep_pen_value_label.config(text=f"{rep_pen_val:.2f}")
+
         self.current_state = None
         self.set_state(AppState.IDLE)
 
@@ -429,6 +437,8 @@ class VLM_GUI(TkinterDnD.Tk):
             base_url = self.llm_url_entry.get().strip()
             model_name = self.llm_model_entry.get().strip()
             prompt = input_widget.get("1.0", tk.END).strip()
+            temperature = self.temperature_slider.get()
+            repetition_penalty = self.repetition_penalty_slider.get()
 
             if not all([api_key, base_url, model_name, prompt]):
                 q.put(("error", "API credentials, model, and prompt cannot be empty."))
@@ -441,7 +451,9 @@ class VLM_GUI(TkinterDnD.Tk):
                 api_key=api_key,
                 base_url=base_url,
                 model=model_name,
-                user_request=prompt
+                user_request=prompt,
+                temperature=temperature,
+                repetition_penalty=repetition_penalty
             )
 
             # 3. Update the UI with the result
@@ -493,67 +505,69 @@ class VLM_GUI(TkinterDnD.Tk):
 
     def _setup_widgets_settings(self, parent_element):
         """Creates and arranges all settings tab widgets."""
-
-        # Let's add the padding directly to it.
         parent_element.config(padding=15)
-
-        # --- Top Frame for Api data ---
         top_frame = ttk.Frame(parent_element, style='Dark.TFrame')
         top_frame.pack(fill=tk.X, pady=(0, 10))
-
-        # --- Configure the columns of the PARENT element to be resizable ---
-        # Columns 1 and 3, which contain the entries, will get the extra space.
         top_frame.columnconfigure(1, weight=1)
         top_frame.columnconfigure(3, weight=1)
 
-        # --- Url Text ---
-        # --- Row 0 ---
-        url_label = ttk.Label(top_frame, text="API Url:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
-        # sticky="w" aligns the text to the West (left) of its grid cell
+        # API URL
+        url_label = ttk.Label(top_frame, text="API Url:", style='Dark.TLabel')
         url_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-
         self.llm_url_entry = ttk.Entry(top_frame, style='Dark.TEntry')
         self.llm_url_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        # --- Row 1 ---
-        llm_model_label = ttk.Label(top_frame, text="Model:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
-        # sticky="w" aligns the text to the West (left) of its grid cell
-        llm_model_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-
-        self.llm_model_entry = ttk.Entry(top_frame,  style='Dark.TEntry')
-        self.llm_model_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-
-        # ---Row 0 Col 1 ---
-        llm_key_label = ttk.Label(top_frame, text="API Key:", background=DARK_COLOR, foreground=FIELD_FOREGROUND_COLOR)
-        # sticky="w" aligns the text to the West (left) of its grid cell
+        # API Key
+        llm_key_label = ttk.Label(top_frame, text="API Key:", style='Dark.TLabel')
         llm_key_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-
-        self.llm_key_entry = ttk.Entry(top_frame,  style='Dark.TEntry', show='*')
+        self.llm_key_entry = ttk.Entry(top_frame, style='Dark.TEntry', show='*')
         self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
-        # Load existing settings from the unified settings object
+        # Model Name
+        llm_model_label = ttk.Label(top_frame, text="Model:", style='Dark.TLabel')
+        llm_model_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.llm_model_entry = ttk.Entry(top_frame, style='Dark.TEntry')
+        self.llm_model_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+
+        # --- Temperature Slider ---
+        temp_label = ttk.Label(top_frame, text="Temperature:", style='Dark.TLabel')
+        temp_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        self.temperature_value_label = ttk.Label(top_frame, text="0.7", style='Dark.TLabel')
+        self.temperature_value_label.grid(row=2, column=2, padx=5, pady=5, sticky="w")
+        self.temperature_slider = ttk.Scale(top_frame, from_=0.0, to=2.0, orient=tk.HORIZONTAL,
+                                            command=lambda val: self.temperature_value_label.config(text=f"{float(val):.2f}"))
+        self.temperature_slider.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+        # --- Repetition Penalty Slider ---
+        rep_pen_label = ttk.Label(top_frame, text="Repetition Penalty:", style='Dark.TLabel')
+        rep_pen_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.rep_pen_value_label = ttk.Label(top_frame, text="1.1", style='Dark.TLabel')
+        self.rep_pen_value_label.grid(row=3, column=2, padx=5, pady=5, sticky="w")
+        self.repetition_penalty_slider = ttk.Scale(top_frame, from_=0.8, to=2.0, orient=tk.HORIZONTAL,
+                                                   command=lambda val: self.rep_pen_value_label.config(text=f"{float(val):.2f}"))
+        self.repetition_penalty_slider.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+
+        # Load existing settings
         self.llm_url_entry.insert(0, self.settings.get("base_url", ""))
         self.llm_model_entry.insert(0, self.settings.get("model_name", ""))
         self.llm_key_entry.insert(0, self.settings.get("api_key", ""))
 
-        # --- Top Frame for Api data ---
+        # --- Buttons ---
         button_frame = ttk.Frame(top_frame, style='Dark.TFrame')
         button_frame.grid(row=1, column=3, padx=5, pady=5, sticky="e")
-
         self.save_button = ttk.Button(button_frame, text="Save", command=self._save_api_settings, style='Dark.TButton')
-        self.save_button.pack(side=tk.LEFT, padx=(0,5))
-
+        self.save_button.pack(side=tk.LEFT, padx=(0, 5))
         self.test_button = ttk.Button(button_frame, text="Test", command=self._test_api_connection_threaded, style='Dark.TButton')
         self.test_button.pack(side=tk.LEFT)
 
     def _save_api_settings(self, silent=False):
         """Handles the Save button click event in the Settings tab."""
-        # Update the settings dictionary with the current values from the UI
         self.settings['api_key'] = self.llm_key_entry.get().strip()
         self.settings['model_name'] = self.llm_model_entry.get().strip()
         self.settings['base_url'] = self.llm_url_entry.get().strip()
+        self.settings['temperature'] = self.temperature_slider.get()
+        self.settings['repetition_penalty'] = self.repetition_penalty_slider.get()
 
-        # Save the updated settings
         success = self.persistence.save_settings(self.settings)
 
         if success:

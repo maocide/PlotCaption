@@ -53,7 +53,8 @@ def _make_api_call(
         top_p: Optional[float] = None,
         frequency_penalty: Optional[float] = None,
         presence_penalty: Optional[float] = None,
-        **kwargs: Any  # For any other model-specific or future parameters
+        repetition_penalty: Optional[float] = None,  # <-- ADD THIS
+        **kwargs: Any
 ) -> Optional[str]:
     """
     Internal helper to execute the OpenAI chat completion API call.
@@ -68,6 +69,7 @@ def _make_api_call(
         top_p (Optional[float]): Nucleus sampling (0.0-1.0).
         frequency_penalty (Optional[float]): Penalizes new tokens based on their existing frequency in the text.
         presence_penalty (Optional[float]): Penalizes new tokens based on whether they appear in the text so far.
+        repetition_penalty (Optional[float]): Penalizes new tokens based on their repetition.
         kwargs (Any): Additional keyword arguments to pass directly to client.chat.completions.create.
 
     Returns:
@@ -89,6 +91,8 @@ def _make_api_call(
             call_params["frequency_penalty"] = frequency_penalty
         if presence_penalty is not None:
             call_params["presence_penalty"] = presence_penalty
+        if repetition_penalty is not None:
+            call_params["repetition_penalty"] = repetition_penalty
 
         # Add any extra kwargs directly
         call_params.update(kwargs)
