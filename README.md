@@ -26,6 +26,7 @@ We built PlotCaption for a few special kinds of people. See if you fit the bill:
 *   🔥 **Dynamic Prompt Templates — Create Your Style:** Don't like the default character card or SD prompt styles? We've made it super easy to customize! Just drop any text file ending in "_character_card.txt" or "_stable_diffusion.txt" into the `prompts/` directory. The app will *dynamically load* them, giving you a powerful dropdown menu in the "Generate" tab to choose between styles like "SFW," "NSFW," or any custom template you create. Full control over the AI's creative direction, for real!
 *   🖥️ **Slick, Modern UI:** A multi-tabbed, dark-themed interface built with `tkinter` that's easy to navigate and won't burn your retinas at 3 AM.
 *   🔄 **Multi-Threaded & Responsive:** The UI won't freeze while the AI is thinking. We're not monsters.
+*   🎛️ **Fine-Tuned Control:** The Settings tab gives you direct control over the LLM's creativity with sliders for **Temperature**, **Frequency Penalty**, and **Presence Penalty**.
 
 ## 🚀 How it Works (The 3-Step Magic Trick)
 
@@ -41,7 +42,11 @@ The whole process is broken down into three simple tabs:
     *   **Stage 2 (SD Prompt):** Now, armed with the original caption, tags, AND the new character card, the app **automatically prepares** a super-detailed Stable Diffusion prompt in the "SD Prompt" text box. This is your chance to **review and edit it** if you wish. Once you are happy with the prepared prompt, click "Generate SD" and behold the glorious, ready-to-use prompt.
 
 3.  **Settings Tab:**
-    *   If you want to use a remote LLM (like via an OpenAI-compatible API) for the generation steps, you can enter your API key, base URL, and model name here.
+    *   This is your command center for the text generation AI.
+    *   **API Credentials:** If you want to use a remote LLM (like via an OpenAI-compatible API), you can enter your API key, base URL, and model name here.
+    *   **Generation Parameters:** You can also fine-tune the AI's behavior:
+        *   **Temperature:** Controls randomness. Lower values are more predictable, higher values are more creative.
+        *   **Frequency & Presence Penalty:** These sliders help reduce repetition. Increase them to encourage the AI to use a wider vocabulary.
 
 ## 🛠️ Installation
 
