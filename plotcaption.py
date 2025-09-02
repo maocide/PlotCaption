@@ -441,9 +441,9 @@ class VLM_GUI(TkinterDnD.Tk):
             base_url = self.llm_url_entry.get().strip()
             model_name = self.llm_model_entry.get().strip()
             prompt = input_widget.get("1.0", tk.END).strip()
-            temperature = self.temperature_slider.get()
-            frequency_penalty = self.frequency_penalty_slider.get()
-            presence_penalty = self.presence_penalty_slider.get()
+            temperature = round(self.temperature_slider.get(), 2)
+            frequency_penalty = round(self.frequency_penalty_slider.get(), 2)
+            presence_penalty = round(self.presence_penalty_slider.get(), 2)
 
             if not all([api_key, base_url, model_name, prompt]):
                 q.put(("error", "API credentials, model, and prompt cannot be empty."))
@@ -844,7 +844,7 @@ class VLM_GUI(TkinterDnD.Tk):
         Handles the drag-and-drop file event.
         """
         filepath = event.data.strip('{}')
-        if filepath.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
+        if filepath.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp')):
             self.image_path = filepath
             self.load_and_display_image()
         else:
