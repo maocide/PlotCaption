@@ -244,11 +244,15 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # Set initial slider values from loaded settings
         temp_val = self.settings.get("temperature", 0.7)
-        rep_pen_val = self.settings.get("repetition_penalty", 1.1)
+        freq_pen_val = self.settings.get("frequency_penalty", 0.0)
+        pres_pen_val = self.settings.get("presence_penalty", 0.0)
+
         self.temperature_slider.set(temp_val)
         self.temperature_value_label.config(text=f"{temp_val:.2f}")
-        self.repetition_penalty_slider.set(rep_pen_val)
-        self.rep_pen_value_label.config(text=f"{rep_pen_val:.2f}")
+        self.frequency_penalty_slider.set(freq_pen_val)
+        self.freq_pen_value_label.config(text=f"{freq_pen_val:.2f}")
+        self.presence_penalty_slider.set(pres_pen_val)
+        self.pres_pen_value_label.config(text=f"{pres_pen_val:.2f}")
 
         self.current_state = None
         self.set_state(AppState.IDLE)
@@ -438,7 +442,8 @@ class VLM_GUI(TkinterDnD.Tk):
             model_name = self.llm_model_entry.get().strip()
             prompt = input_widget.get("1.0", tk.END).strip()
             temperature = self.temperature_slider.get()
-            repetition_penalty = self.repetition_penalty_slider.get()
+            frequency_penalty = self.frequency_penalty_slider.get()
+            presence_penalty = self.presence_penalty_slider.get()
 
             if not all([api_key, base_url, model_name, prompt]):
                 q.put(("error", "API credentials, model, and prompt cannot be empty."))
@@ -453,7 +458,8 @@ class VLM_GUI(TkinterDnD.Tk):
                 model=model_name,
                 user_request=prompt,
                 temperature=temperature,
-                repetition_penalty=repetition_penalty
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty
             )
 
             # 3. Update the UI with the result
@@ -533,19 +539,28 @@ class VLM_GUI(TkinterDnD.Tk):
         temp_label = ttk.Label(top_frame, text="Temperature:", style='Dark.TLabel')
         temp_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.temperature_value_label = ttk.Label(top_frame, text="0.7", style='Dark.TLabel')
-        self.temperature_value_label.grid(row=2, column=2, padx=5, pady=5, sticky="w")
+        self.temperature_value_label.grid(row=2, column=3, padx=5, pady=5, sticky="w")
         self.temperature_slider = ttk.Scale(top_frame, from_=0.0, to=2.0, orient=tk.HORIZONTAL,
                                             command=lambda val: self.temperature_value_label.config(text=f"{float(val):.2f}"))
-        self.temperature_slider.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        self.temperature_slider.grid(row=2, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
 
-        # --- Repetition Penalty Slider ---
-        rep_pen_label = ttk.Label(top_frame, text="Repetition Penalty:", style='Dark.TLabel')
-        rep_pen_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.rep_pen_value_label = ttk.Label(top_frame, text="1.1", style='Dark.TLabel')
-        self.rep_pen_value_label.grid(row=3, column=2, padx=5, pady=5, sticky="w")
-        self.repetition_penalty_slider = ttk.Scale(top_frame, from_=0.8, to=2.0, orient=tk.HORIZONTAL,
-                                                   command=lambda val: self.rep_pen_value_label.config(text=f"{float(val):.2f}"))
-        self.repetition_penalty_slider.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        # --- Frequency Penalty Slider ---
+        freq_pen_label = ttk.Label(top_frame, text="Frequency Penalty:", style='Dark.TLabel')
+        freq_pen_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.freq_pen_value_label = ttk.Label(top_frame, text="0.0", style='Dark.TLabel')
+        self.freq_pen_value_label.grid(row=3, column=3, padx=5, pady=5, sticky="w")
+        self.frequency_penalty_slider = ttk.Scale(top_frame, from_=-2.0, to=2.0, orient=tk.HORIZONTAL,
+                                                    command=lambda val: self.freq_pen_value_label.config(text=f"{float(val):.2f}"))
+        self.frequency_penalty_slider.grid(row=3, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
+
+        # --- Presence Penalty Slider ---
+        pres_pen_label = ttk.Label(top_frame, text="Presence Penalty:", style='Dark.TLabel')
+        pres_pen_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        self.pres_pen_value_label = ttk.Label(top_frame, text="0.0", style='Dark.TLabel')
+        self.pres_pen_value_label.grid(row=4, column=3, padx=5, pady=5, sticky="w")
+        self.presence_penalty_slider = ttk.Scale(top_frame, from_=-2.0, to=2.0, orient=tk.HORIZONTAL,
+                                                     command=lambda val: self.pres_pen_value_label.config(text=f"{float(val):.2f}"))
+        self.presence_penalty_slider.grid(row=4, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
 
         # Load existing settings
         self.llm_url_entry.insert(0, self.settings.get("base_url", ""))
@@ -566,7 +581,8 @@ class VLM_GUI(TkinterDnD.Tk):
         self.settings['model_name'] = self.llm_model_entry.get().strip()
         self.settings['base_url'] = self.llm_url_entry.get().strip()
         self.settings['temperature'] = self.temperature_slider.get()
-        self.settings['repetition_penalty'] = self.repetition_penalty_slider.get()
+        self.settings['frequency_penalty'] = self.frequency_penalty_slider.get()
+        self.settings['presence_penalty'] = self.presence_penalty_slider.get()
 
         success = self.persistence.save_settings(self.settings)
 

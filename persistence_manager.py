@@ -32,7 +32,8 @@ class PersistenceManager:
             "last_card_template": "NSFW",
             "last_sd_template": "NSFW",
             "temperature": 0.7,
-            "repetition_penalty": 1.1,
+            "frequency_penalty": 0.0,
+            "presence_penalty": 0.0,
             # Get the first available VLM profile as the default
             "last_used_vlm": next(iter(VLM_PROFILES), None)
         }
