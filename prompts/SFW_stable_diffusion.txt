@@ -1,71 +1,51 @@
 ### Instruction
-You are an expert manga analyst and prompt engineer. Analyze the provided AI-generated character card, caption and list of booru-style tags to create an optimal Stable Diffusion prompt for the character to analyze. Focus mainly on visual characteristics from the data.
-You MUST be accurate and use all possible stable diffusion tags you know to accurately reflect all visual details and the overall atmosphere from the source data.
+You are an expert manga analyst and prompt engineer. Your task is to analyze the provided data (caption, tags, character card) and create an optimal Stable Diffusion prompt for the specified character. Your output must be factually based on the provided data.
+
+The final prompt should follow a "hybrid" structure, combining precise Danbooru-style tags with a simple, descriptive natural language sentence to provide the best possible guidance for the image model.
 
 ### Character to analyze:
 [[[character_to_analyze]]]
 
 ### Steps
-1. **Aggregate Character Data**:
-    - Scan the **tags** for specific visual details (hair, eyes, body type, clothing, NSFW tags).
-    - Use the **caption** to understand the pose, expression, and background context.
-    - Prioritize descriptors for physique from the tags as they are more factual.
-    - Contextualize personality and environment from the character card to reflect the scenario.
+1.  **Aggregate Character Data**:
+    * Scan the **tags** for specific, factual visual details (hair, eyes, body type, clothing).
+    * Use the **caption** and **character card** to understand the character's mood, expression, pose, and the overall environment.
+    * Prioritize the Danbooru tags for physical attributes as they are the most direct data.
 
-2. **Build Prompt Structure**: (masterpiece, best quality, highres, manga style, <CHARACTER_DESCRIPTION>, <EXPRESSION_POSE>, <BACKGROUND_CONTEXT>)
-    - **<CHARACTER_DESCRIPTION>**:
-    * Use danbooru tags: examples `1girl`/`1boy`, hair/eye colors (`blue_hair`), clothing (`hoodie`), features (`glasses`)
-    * Include in the analysis nsfw parts to acquire data for poses, expressions and personality
-    * Include body proportions if explicitly mentioned
-    * Include clothing items, make up, accessories worn by the character
-    * Example: `1girl, short_dark_hair, glasses, white_hoodie, large_breasts`
+2.  **Build the Hybrid Prompt Structure**:
+    * **Part 1 (Tags):** Construct a comma-separated list of Danbooru tags following a clear hierarchy: **Quality > Subject > Pose/Expression > Clothing/Details > Background**.
+        * **Quality:** Start with general quality tags (e.g., `masterpiece`, `best quality`).
+        * **Subject:** Define the character (e.g., `1girl`, `solo`, `chibi`, hair color, eye color).
+        * **Pose/Expression:** Describe the character's pose and expression (e.g., `waving`, `gentle_smile`, `looking_at_viewer`).
+        * **Clothing/Details:** List all clothing and accessories.
+        * **Background:** Describe the environment (e.g., `outdoors`, `school hallway`, `simple background`).
 
-    - **<EXPRESSION_POSE>**:
-    * Describe signature expressions from panel analysis (e.g. `gentle_smile`, `triumphant_expression`)
-    * Capture characteristic poses (e.g. `sitting_on_couch`)
-    * Capture characteristic objects from the content analyzed
-    * Use `looking_at_viewer` in case the subject should do that, and other tags like `looking_away`, `looking_at`... to express different situations
-    * Example: `affectionate_smile, handing_object, sitting, looking_at_viewer`
+    * **Part 2 (Natural Language):** After the tags, add a concise, descriptive sentence that describes the entire scene in simple terms. This provides relational context for the model.
+        * *Example:* `1girl, chibi, waving. A chibi girl is waving in a welcoming pose.`
 
-    - **<BACKGROUND_CONTEXT>**:
-    * Use setting descriptors from the content analyzed
-    * Use the most recurring daytime in the scenario to represent day or night, dusk...
-    * Example: `cozy_indoor, warm_lighting, home_environment`
+3.  **Enhance the Negative Prompt**:
+    * Always start with foundational negative embeddings and quality tags: `(embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, blurry, sketch, watermark, signature, artist name`.
+    * **Crucially, also include tags to prevent common AI failures**, such as `bad anatomy, bad hands, malformed hands, extra limbs, disfigured, poorly drawn, text, error`.
 
-- **<CAMERA_ANGLES>**:
-    * Based on the type of composition you are making decide a camera angle or a combination of them
-    * Each angle can give different impression about the character (e.g. `from_below` - the character will look imponent)
-    * Example: `dutch_angle, side_view` or `front_view, (from_above:1.4)`
+4.  **Critical Constraints**:
+    * The final output must be structured into a "Positive" and "Negative" prompt.
+    * **Be neutral but compliant:** Do not actively add NSFW tags, but if they are present in the source data, they must be accurately included in the prompt.
+    * Prioritize a clear and creative pose and camera angle.
+    * Never mention your analysis steps in the final output.
 
-3. **Quality Enhancers**:
-    - Always start with the positives with: `(embedding:lazypos:1.1), (embedding:hotify:1), (masterpiece, best quality, highres, anime, manga style), `
-    - End with: `sharp_focus, detailed_eyes, depth of field, blurry background`
-    - Always start negatives with: `(embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, displeasing, ad quality, worst detail, sketch, censored, watermark, signature, artist name, `
-    - Include mood tags from "Overall Mood" sections (e.g. `warm_atmosphere`)
-
-4. **Critical Constraints**:
-    - MAX 300 words total
-    - Accurately represent all tags from the source data. If NSFW tags are present in the input, they should be included in the prompt.
-    - Prefer using danbooru tags for attributes
-    - Prioritize portrait composition
-    - Be creative with a pose and camera angle
-    - Never mention analysis structure
-
-5. **Final Step:**
-    - Review what you prepared, check if it physically makes sense and fits the request correcting accordingly
-    - Output your creative composition as the example
+5.  **Final Review:**
+    * Review the complete prompt to ensure it is logical and coherent.
+    * Output the result in the specified format.
 
 ### Output Format
-Return ONLY the Stable Diffusion prompt
-
-If character isn't found, respond: "Character data insufficient".
+Return ONLY the Stable Diffusion prompt, separated into Positive and Negative sections.
 
 ### Example Output
 Positive:
-(masterpiece, best quality, highres, manga style, 1girl, short hair, [...])
+(masterpiece, best quality, 1girl, short hair, [...]), A girl with short hair is standing.
 
 Negative:
-(embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, displeasing, ad quality, worst detail, sketch, censored, watermark, signature, artist name, [...]
+(embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, blurry, bad anatomy, bad hands, [...]
 
 --- DATA TO ANALYZE ---
 ### AI-Generated Caption:

@@ -937,7 +937,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.sd_generate_button.config(state='disabled')
         self.card_text_box.config(state='disabled')
         self.sd_text_box.config(state='disabled')
-
+        self.test_button.config(state='enabled')
 
         # --- Configure UI based on the new state ---
         if self.current_state == AppState.IDLE:
@@ -949,10 +949,12 @@ class VLM_GUI(TkinterDnD.Tk):
             self.load_button.config(text="Loading...")
             self.update_status(f"Loading model: {self.model_selection_combo.get()}...")
 
+
         elif self.current_state == AppState.MODEL_LOADED:
             self.load_button.config(text="Loaded")
             self.unload_button.config(state='normal')
             self.model_selection_combo.config(state='disabled')
+            self.test_button.config(state='enabled')
             self.update_status("Model loaded. Please drop an image.")
 
         elif self.current_state == AppState.READY_TO_GENERATE:
@@ -966,6 +968,7 @@ class VLM_GUI(TkinterDnD.Tk):
             self.generate_button.config(text="Generating...")
             self.unload_button.config(state='disabled')
             self.model_selection_combo.config(state='disabled')
+            self.test_button.config(state='disabled')
             self.update_status("Generating, please wait...")
 
         elif self.current_state == AppState.READY_FOR_CARD_GENERATION:
@@ -977,6 +980,7 @@ class VLM_GUI(TkinterDnD.Tk):
             self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
+            self.test_button.config(state='enabled')
             self.update_status("Character Card prompt ready. Click 'Generate Card'.")
 
         elif self.current_state == AppState.READY_FOR_SD_GENERATION:
@@ -988,12 +992,14 @@ class VLM_GUI(TkinterDnD.Tk):
             self.copy_caption_button.config(state='normal')
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
+            self.test_button.config(state='enabled')
             self.update_status("Character Card generated. SD prompt is ready.")
 
         elif self.current_state == AppState.API_GENERATING:
             self.card_generate_button.config(state='disabled')
             self.sd_generate_button.config(state='disabled')
             self.unload_button.config(state='normal')
+            self.test_button.config(state='disabled')
             self.update_status("Generating via API...")
 
 
