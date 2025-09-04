@@ -61,7 +61,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
 
         self.title("PLOT Captioning in detail")
-        self.iconbitmap(resource_path('assets/app_icon.ico'))
+        self.iconbitmap(resource_path('assets/plot_icon.ico'))
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
 
