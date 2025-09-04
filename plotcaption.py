@@ -1,4 +1,5 @@
 import queue
+import sys, os
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox, scrolledtext
@@ -30,6 +31,16 @@ class AppState(Enum):
     READY_FOR_SD_GENERATION = auto()
     API_GENERATING = auto()
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 class VLM_GUI(TkinterDnD.Tk):
     """
     A simple GUI for interacting with a Vision Language Model (VLM).
@@ -50,6 +61,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
 
         self.title("PLOT Captioning in detail")
+        self.iconbitmap(resource_path('assets/plot_icon.ico'))
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
 
