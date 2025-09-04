@@ -1,3 +1,8 @@
 # Installs core requirements, then specifies the CPU index for PyTorch
 -r requirements.txt
 --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Add the specific libraries here
+torch
+torchaudio
+torchvision

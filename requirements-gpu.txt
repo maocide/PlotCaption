@@ -1,3 +1,8 @@
 # Installs core requirements, then specifies the CUDA index for PyTorch
 -r requirements.txt
 --extra-index-url https://download.pytorch.org/whl/cu121
+
+# Add the specific libraries here
+torch
+torchaudio
+torchvision
