@@ -9,14 +9,38 @@ class ModelHandler:
     def __init__(self):
         self.model = None
         self.processor = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    def pick_device(self, loaded_profile):
+        if torch.cuda.is_available():
+            # Get total VRAM in bytes and convert to Gigabytes
+            total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+
+            # Set a threshold for what we consider a "high VRAM" GPU
+            vram_threshold_gb = loaded_profile.required_vram_gb  # We can adjust this value if needed
+
+            if total_vram_gb > vram_threshold_gb:
+                # If the user has plenty of VRAM, force the model to the GPU for max speed.
+                self.device = "cuda"
+                print(f"Sufficient VRAM ({total_vram_gb:.2f}GB) detected. Using 'cuda' for maximum performance.")
+            else:
+                # If VRAM is limited, use "auto" to prevent crashes and allow offloading.
+                self.device = "auto"
+                print(f"Limited VRAM ({total_vram_gb:.2f}GB) detected. Using 'auto' to enable model offloading.")
+        else:
+            # If there's no GPU, we fall back to CPU.
+            self.device = "cpu"
+            print("No CUDA device found. Using CPU.")
 
     def load_model(self, loaded_profile):
         """
         Loads a VLM model and processor using the function from the profile.
         """
+
         if not loaded_profile:
             raise ValueError("A valid VLMProfile must be provided.")
+
+        # Picks the correct device based on profile GB require VRAM
+        self.pick_device(loaded_profile)
 
         # Call the specific loader function from the profile
         # Add a print statement for better logging

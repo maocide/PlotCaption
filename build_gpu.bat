@@ -19,7 +19,9 @@ echo.
 echo [3/6] Activating environment and installing GPU dependencies...
 call .\\venv-build-gpu\\Scripts\\activate.bat
 python.exe -m pip install --upgrade pip
-pip install -r requirements-gpu.txt --no-cache-dir
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt
+pip install pyinstaller
 
 REM --- Run PyInstaller ---
 echo.

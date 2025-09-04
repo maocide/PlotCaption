@@ -11,7 +11,7 @@ a = Analysis(
         ('prompts', 'prompts')
     ],
     hiddenimports=[],
-    hookspath=[],
+    hookspath=['hooks'], # The hooks for qwen local files
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],

@@ -22,6 +22,7 @@ class VLMProfile:
     # This is the new field! It holds one of the functions we just defined.
     generation_function: Callable[[any, any, any, str, str, any], str]
     loader_function: Callable[[str, str], Tuple[Any, Any]]
+    required_vram_gb: int
 
 def load_joycaption_model(model_name: str, device: str) -> Tuple[Any, Any]:
     """Loads a LLaVA-based VLM model and processor."""
@@ -164,7 +165,8 @@ VLM_PROFILES = {
         caption_parser=parse_simple_model_text,
         tags_parser=parse_simple_model_text,
         generation_function=generate_joycaption_description,  # Assign the function
-        loader_function=load_joycaption_model  # Assign the loader
+        loader_function=load_joycaption_model,  # Assign the loader
+        required_vram_gb = 11
     ),
     "ToriiGate-v0.4-7B": VLMProfile(
         model_id="Minthy/ToriiGate-v0.4-7B",
@@ -181,7 +183,8 @@ Here are grounding tags for better understanding: <tags></tags>.""", # Your prom
         caption_parser=parse_simple_model_text,
         tags_parser=parse_toriigate_tags,
         generation_function=generate_toriigate_description, # Assign the function
-        loader_function=load_toriigate_model # Assign the loader
+        loader_function=load_toriigate_model, # Assign the loader
+        required_vram_gb = 11
     )
 
 }

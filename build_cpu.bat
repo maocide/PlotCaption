@@ -20,6 +20,7 @@ echo [3/6] Activating environment and installing CPU dependencies...
 call .\\venv-build-cpu\\Scripts\\activate.bat
 python.exe -m pip install --upgrade pip
 pip install -r requirements-cpu.txt --no-cache-dir
+pip install pyinstaller
 
 REM --- Run PyInstaller ---
 echo.
