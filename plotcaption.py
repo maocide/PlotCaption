@@ -10,7 +10,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
     BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, COPY_IMAGE_FILE, \
-    COPY_IMAGE_HOVER_FILE, CARD_USER_ROLE, CARD_CHAR_TO_ANALYZE, SD_CHAR_TO_ANALYZE
+    COPY_IMAGE_HOVER_FILE, CARD_USER_ROLE, CARD_CHAR_TO_ANALYZE, SD_CHAR_TO_ANALYZE, APP_VERSION
 import ai_utils
 from persistence_manager import PersistenceManager
 from model_handler import ModelHandler
@@ -60,7 +60,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
 
 
-        self.title("PLOT Captioning in detail")
+        self.title(f"PLOT Captioning in detail v{APP_VERSION}")
         self.iconbitmap(resource_path('assets/plot_icon.ico'))
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
