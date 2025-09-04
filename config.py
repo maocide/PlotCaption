@@ -3,6 +3,7 @@
 # Quantized model: "John6666/llama-joycaption-beta-one-hf-llava-nf4"
 # Full model: "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 
+APP_VERSION = "1.0.0"
 DEFAULT_PROMPT = """Please provide a long, detailed description of the following image.
 The character(s) in the image is/are: <char></char>.
 Here are grounding tags for better understanding: <tags></tags>."""
