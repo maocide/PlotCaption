@@ -1,0 +1,3 @@
+# Installs core requirements, then specifies the CUDA index for PyTorch
+-r requirements.txt
+--index-url https://download.pytorch.org/whl/cu121
