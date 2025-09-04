@@ -1,14 +1,24 @@
 # prompts.py (Refactored Version)
 import os
+import sys
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 
 def _load_prompt_template(filename: str) -> str:
     """
     Loads a prompt template from a file in the 'prompts' directory.
     """
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Build the full path to the template file
-    template_path = os.path.join(script_dir, "prompts", filename)
+    template_path = resource_path(os.path.join("prompts", filename))
 
     try:
         with open(template_path, 'r', encoding='utf-8') as f:
@@ -20,12 +30,12 @@ def _load_prompt_template(filename: str) -> str:
         print(f"ERROR: Could not read prompt template file {filename}: {e}")
         return ""
 
+
 def discover_prompt_templates() -> dict:
     """
     Scans the 'prompts' directory for prompt templates and returns their names.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    prompts_dir = os.path.join(script_dir, "prompts")
+    prompts_dir = resource_path("prompts")
 
     card_prompts = []
     sd_prompts = []

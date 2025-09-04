@@ -61,7 +61,7 @@ class VLM_GUI(TkinterDnD.Tk):
 
 
         self.title("PLOT Captioning in detail")
-        self.iconbitmap(resource_path('assets/plot_icon.ico'))
+        self.iconbitmap(resource_path('assets/app_icon.ico'))
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
 
@@ -201,8 +201,8 @@ class VLM_GUI(TkinterDnD.Tk):
         self.tab_control.pack(expand=True, fill="both", padx=0, pady=0)
 
         # --- Load Icon Images ---
-        self.copy_icon = tk.PhotoImage(file=COPY_IMAGE_FILE)
-        self.copy_icon_hover = tk.PhotoImage(file=COPY_IMAGE_HOVER_FILE)
+        self.copy_icon = tk.PhotoImage(file=resource_path(COPY_IMAGE_FILE))
+        self.copy_icon_hover = tk.PhotoImage(file=resource_path(COPY_IMAGE_HOVER_FILE))
 
         # --- Prompt Template Discovery ---
         prompt_templates = discover_prompt_templates()
