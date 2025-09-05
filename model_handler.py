@@ -1,78 +1,58 @@
-# model_handler.py (Final, Simplified Version)
-
 import torch
 
-
-# No more specific transformers imports needed here!
 
 class ModelHandler:
     def __init__(self):
         self.model = None
         self.processor = None
 
-    def pick_device(self, loaded_profile):
-        if torch.cuda.is_available():
-            # Get total VRAM in bytes and convert to Gigabytes
+        # This is the device we will ALWAYS use for TENSOR computations.
+        self.compute_device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # This will be the STRATEGY for loading the model. It might be 'auto' or 'cuda'.
+        self.device_map_config = self.compute_device
+
+    def pick_device_map_strategy(self, loaded_profile):
+        """Determines the best loading strategy based on available VRAM."""
+        if self.compute_device == "cuda":
             total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+            vram_threshold_gb = loaded_profile.required_vram_gb
 
-            # Set a threshold for what we consider a "high VRAM" GPU
-            vram_threshold_gb = loaded_profile.required_vram_gb  # We can adjust this value if needed
-
-            if total_vram_gb > vram_threshold_gb:
-                # If the user has plenty of VRAM, force the model to the GPU for max speed.
-                self.device = "cuda"
-                print(f"Sufficient VRAM ({total_vram_gb:.2f}GB) detected. Using 'cuda' for maximum performance.")
+            if total_vram_gb <= vram_threshold_gb:
+                self.device_map_config = "auto"
+                print(f"Limited VRAM ({total_vram_gb:.2f}GB) detected. Using 'auto' device map for loading.")
             else:
-                # If VRAM is limited, use "auto" to prevent crashes and allow offloading.
-                self.device = "auto"
-                print(f"Limited VRAM ({total_vram_gb:.2f}GB) detected. Using 'auto' to enable model offloading.")
+                self.device_map_config = "cuda"
+                print(f"Sufficient VRAM ({total_vram_gb:.2f}GB) detected. Using 'cuda' for loading.")
         else:
-            # If there's no GPU, we fall back to CPU.
-            self.device = "cpu"
+            self.device_map_config = "cpu"
             print("No CUDA device found. Using CPU.")
 
     def load_model(self, loaded_profile):
-        """
-        Loads a VLM model and processor using the function from the profile.
-        """
-
         if not loaded_profile:
             raise ValueError("A valid VLMProfile must be provided.")
 
-        # Picks the correct device based on profile GB require VRAM
-        self.pick_device(loaded_profile)
+        # First, determine the best loading strategy for this specific profile
+        self.pick_device_map_strategy(loaded_profile)
 
-        # Call the specific loader function from the profile
-        # Add a print statement for better logging
-        print(f"Loading {loaded_profile.model_id} onto device: {self.device}")
-
+        print(f"Loading {loaded_profile.model_id} with strategy: '{self.device_map_config}'")
         self.model, self.processor = loaded_profile.loader_function(
             loaded_profile.model_id,
-            self.device  # Pass the device string here
+            self.device_map_config  # Pass the loading STRATEGY here
         )
 
     def unload_model(self):
-        """
-        Unloads the model and processor, and clears GPU memory if applicable.
-        """
         self.model = None
         self.processor = None
-        self.is_toriigate_model = False
-        if self.device == "cuda":
+        if self.compute_device == "cuda":
             torch.cuda.empty_cache()
 
     def generate_description(self, loaded_profile, prompt, image_raw):
-        """
-        Generates text by calling the specific function from the loaded profile.
-        """
-        # ... (error checking) ...
-
-        # The ModelHandler calls the function from the profile and
-        # passes its own tools as arguments.
+        # Always pass the actual COMPUTE device here ("cuda" or "cpu"), never "auto".
         return loaded_profile.generation_function(
-            self.model,  # Tool #1 from the Handler's toolkit
-            self.processor,  # Tool #2 from the Handler's toolkit
-            self.device,  # Tool #3 from the Handler's toolkit
+            self.model,
+            self.processor,
+            self.compute_device,
             prompt,
             loaded_profile.system_prompt,
             image_raw
