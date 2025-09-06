@@ -4,10 +4,8 @@
 # Full model: "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 
 APP_VERSION = "1.0.0"
-DEFAULT_PROMPT = """Please provide a long, detailed description of the following image.
-The character(s) in the image is/are: <char></char>.
-Here are grounding tags for better understanding: <tags></tags>."""
 MAX_THUMBNAIL_SIZE = (400, 400)
+ACCEPTED_IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp')
 
 COPY_IMAGE_FILE = "assets/copy_image.png"
 COPY_IMAGE_HOVER_FILE = "assets/copy_image_hover.png"

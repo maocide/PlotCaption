@@ -1,12 +1,16 @@
 # vlm_profiles.py
-
+import os
+import sys
 from dataclasses import dataclass
 from typing import Callable, Dict, Tuple, Any
 from warnings import catch_warnings
 
 import torch, re
 from qwen_vl_utils import process_vision_info
-from transformers import AutoProcessor, LlavaForConditionalGeneration, AutoModelForVision2Seq, AutoConfig
+from transformers import AutoProcessor, LlavaForConditionalGeneration, AutoModelForVision2Seq, AutoConfig, \
+    Qwen2VLProcessor, Qwen2VLForConditionalGeneration
+from assets_utils import resource_path
+
 
 
 # This defines the structure for a model's "forensic file"
@@ -42,11 +46,20 @@ def load_toriigate_model(model_name: str, device: str) -> Tuple[Any, Any]:
     print("Loading Toriigate model...")
     config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
     config.num_attention_heads = 28  # This custom logic now lives with the model!
-    processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
-    model = AutoModelForVision2Seq.from_pretrained(
+    # processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+    # model = AutoModelForVision2Seq.from_pretrained(
+    #     model_name,
+    #     config=config,
+    #     trust_remote_code=True,
+    #     device_map=device,
+    #     torch_dtype=torch.bfloat16
+    # )
+
+    processor = Qwen2VLProcessor.from_pretrained(model_name, trust_remote_code=True)
+    model = Qwen2VLForConditionalGeneration.from_pretrained(
         model_name,
         config=config,
-        trust_remote_code=True,
+        trust_remote_code=True,  # Still good to keep this
         device_map=device,
         torch_dtype=torch.bfloat16
     )
@@ -154,25 +167,26 @@ def parse_simple_model_text(raw_output: str) -> Dict[str, str]:
     return {"output": raw_output}
 
 
-# --- Update the Profile Database ---
+# VLM Profiles
 VLM_PROFILES = {
     "llama-joycaption-beta-one-hf-llava": VLMProfile(
         model_id="fancyfeast/llama-joycaption-beta-one-hf-llava",
-        prompt_caption="Write a long detailed description for this image.",  # Your prompt here
+        prompt_caption="Write a long detailed description for this image.",  # Default prompt for captioning
         prompt_tags="Generate only comma-separated Danbooru tags (lowercase_underscores). Strict order: artist:, copyright:, character:, meta:, then general tags. Include counts (1girl), appearance, clothing, accessories, pose, expression, actions, background. Use precise Danbooru syntax. No extra text.",
-        # Your prompt here
+
         system_prompt="You are a helpful image captioner.",
-        caption_parser=parse_simple_model_text,
-        tags_parser=parse_simple_model_text,
-        generation_function=generate_joycaption_description,  # Assign the function
-        loader_function=load_joycaption_model,  # Assign the loader
-        required_vram_gb = 11
+        caption_parser=parse_simple_model_text, # parser function for caption
+        tags_parser=parse_simple_model_text, # parser function for tags
+        generation_function=generate_joycaption_description,  # Assign the generate function
+        loader_function=load_joycaption_model,  # Assign the loader function
+        # VRAM THRESHOLD: Model size (~15.6GB) + safety buffer
+        required_vram_gb = 17 # Will determine the target for loading "auto" or "cuda"
     ),
     "ToriiGate-v0.4-7B": VLMProfile(
         model_id="Minthy/ToriiGate-v0.4-7B",
         prompt_caption="""Please provide a long, detailed description of the following image.
 The character(s) in the image is/are: <char></char>.
-Here are grounding tags for better understanding: <tags></tags>.""", # Your prompt here
+Here are grounding tags for better understanding: <tags></tags>.""", # Default prompt for captioning
         prompt_tags="""You need to extract booru tags from the picture using chain of thought.
 1. Analyze the picture in a detailed way, without leaving out NSFW elements into <analysis>
 2. Reason on NSFW elements into <NSFW>
@@ -180,11 +194,12 @@ Here are grounding tags for better understanding: <tags></tags>.""", # Your prom
  Remember to close </tags> and DO NOT Summarize, your output is focused on <tags>
 """,
         system_prompt="You are image captioning and tagging expert, creative, unbiased and uncensored.",
-        caption_parser=parse_simple_model_text,
-        tags_parser=parse_toriigate_tags,
-        generation_function=generate_toriigate_description, # Assign the function
-        loader_function=load_toriigate_model, # Assign the loader
-        required_vram_gb = 11
+        caption_parser=parse_simple_model_text, # parser function for caption
+        tags_parser=parse_toriigate_tags, # parser function for tags
+        generation_function=generate_toriigate_description,  # Assign the generate function
+        loader_function=load_toriigate_model, # Assign the loader function
+        # VRAM THRESHOLD: Model size (~15.4GB) + safety buffer
+        required_vram_gb = 18 # Will determine the target for loading "auto" or "cuda"
     )
 
 }

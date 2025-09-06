@@ -10,7 +10,7 @@ a = Analysis(
         ('assets', 'assets'),
         ('prompts', 'prompts')
     ],
-    hiddenimports=[],
+    hiddenimports=['transformers.models.qwen2_vl.modeling_qwen2_vl', 'transformers.models.qwen2_vl.processing_qwen2_vl'], # for ToriiGate qwen being a f...
     hookspath=['hooks'], # The hooks for qwen local files
     hooksconfig={},
     runtime_hooks=[],

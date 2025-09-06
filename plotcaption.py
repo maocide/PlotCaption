@@ -6,11 +6,13 @@ from tkinter import messagebox, scrolledtext
 import threading
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
+from assets_utils import resource_path
 
-from config import DEFAULT_PROMPT, MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
+from config import MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
     FIELD_BACK_COLOR, FIELD_FOREGROUND_COLOR, INSERT_COLOR, SELECT_BACKGROUND_COLOR, BUTTON_ACTIVATE_COLOR, \
     BUTTON_PRESSED_COLOR, BUTTON_COLOR, TEXT_BG_COLOR, INSERT_BACKGROUND_COLOR, PLACEHOLDER_FG_COLOR, COPY_IMAGE_FILE, \
-    COPY_IMAGE_HOVER_FILE, CARD_USER_ROLE, CARD_CHAR_TO_ANALYZE, SD_CHAR_TO_ANALYZE, APP_VERSION
+    COPY_IMAGE_HOVER_FILE, CARD_USER_ROLE, CARD_CHAR_TO_ANALYZE, SD_CHAR_TO_ANALYZE, APP_VERSION, \
+    ACCEPTED_IMAGE_EXTENSIONS
 import ai_utils
 from persistence_manager import PersistenceManager
 from model_handler import ModelHandler
@@ -31,16 +33,6 @@ class AppState(Enum):
     READY_FOR_SD_GENERATION = auto()
     API_GENERATING = auto()
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
 class VLM_GUI(TkinterDnD.Tk):
     """
     A simple GUI for interacting with a Vision Language Model (VLM).
@@ -50,16 +42,13 @@ class VLM_GUI(TkinterDnD.Tk):
     response from the model.
     """
 
-
-
     def __init__(self):
         """
         Initializes the main application window and its components.
         """
         super().__init__()
 
-
-
+        # Application title, icon, window size
         self.title(f"PLOT Captioning in detail v{APP_VERSION}")
         self.iconbitmap(resource_path('assets/plot_icon.ico'))
         self.geometry("900x750")
@@ -67,25 +56,23 @@ class VLM_GUI(TkinterDnD.Tk):
 
 
 
-        # --- Handlers ---
+        # Handlers
         self.model_handler = ModelHandler()
         self.persistence = PersistenceManager()
         self.settings = self.persistence.load_settings()
 
-        # --- State Variables ---
+        # State Variables
         self.loaded_profile: VLMProfile = None
         self.image_path = None
         self.image_raw = None
         self.image_tk = None
 
-        # --- STYLE CONFIGURATION (Based on your research doc) ---
-        # 1. Create the Style object
+        # STYLE CONFIGURATION using config values
+        # Create the Style object
         self.style = ttk.Style(self)
 
-        # 2. MANDATORY: Switch to a configurable theme to escape Windows' native rendering
+        # Switch to a configurable theme to escape Windows' native rendering
         self.style.theme_use('clam')
-
-        # 4. Configure the colors for the different widget parts
 
         # Style for the container frame
         self.style.configure('Dark.TFrame', background=DARK_COLOR)
@@ -157,7 +144,7 @@ class VLM_GUI(TkinterDnD.Tk):
                        background=[('active', FIELD_BORDER_AREA_COLOR),
                                    ('pressed', BUTTON_PRESSED_COLOR)])
 
-        # Optional: Change color when the mouse hovers or clicks
+        # Change color when the mouse hovers or clicks
         self.style.map('Dark.TButton',
                        background=[('active', BUTTON_ACTIVATE_COLOR), ('pressed', BUTTON_PRESSED_COLOR)])
 
@@ -174,46 +161,42 @@ class VLM_GUI(TkinterDnD.Tk):
                              borderwidth=1, relief='solid', bordercolor=FIELD_BORDER_AREA_COLOR)
 
         # --- WIDGET CREATION ---
-        # (Your existing code for creating the notebook and frames is correct)
-        # Just make sure to apply the 'Dark.TFrame' style to your frames:
-        # 1. Create the Notebook as an instance variable
+        # TAB control
         self.tab_control = ttk.Notebook(self)
 
-        # 2. Create the Frames and APPLY THE NEW STYLE
+        # Frames
         self.tab1_frame = ttk.Frame(self.tab_control, style='Dark.TFrame')
         self.tab2_frame = ttk.Frame(self.tab_control, style='Dark.TFrame')
         self.tab3_frame = ttk.Frame(self.tab_control, style='Dark.TFrame')
 
-        # 3. Add the Frames to the Notebook as tabs
+        # Add frames to tab control
         self.tab_control.add(self.tab1_frame, text='Caption')
         self.tab_control.add(self.tab2_frame, text='Generate')
         self.tab_control.add(self.tab3_frame, text='Settings')
 
-
-        # --- Status Bar ---
         # Create the status bar first and pack it to the bottom of the window
         self.style.configure('Dark.TLabel', background=DARK_COLOR, foreground="white")
         self.status_bar = ttk.Label(self, text="Ready. Please load a model.", relief=tk.FLAT, anchor=tk.W, background=DARK_COLOR, foreground="white")
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-        # --- Tab Control ---
+        # ab Control
         # NOW, pack the tab control last, letting it fill the remaining space
         self.tab_control.pack(expand=True, fill="both", padx=0, pady=0)
 
-        # --- Load Icon Images ---
+        # Load Icon Images
         self.copy_icon = tk.PhotoImage(file=resource_path(COPY_IMAGE_FILE))
         self.copy_icon_hover = tk.PhotoImage(file=resource_path(COPY_IMAGE_HOVER_FILE))
 
-        # --- Prompt Template Discovery ---
+        # Prompt Template Discovery (to get custom ones)
         prompt_templates = discover_prompt_templates()
         self.card_prompt_templates = prompt_templates.get("card_prompts", ["NSFW"])
         self.sd_prompt_templates = prompt_templates.get("sd_prompts", ["NSFW"])
 
-        # --- Create Frame for LLM Tab ---
+        # Create Frame for LLM Tab
         self.main_llm_frame = ttk.Frame(self.tab2_frame, style='Dark.TFrame', padding=10)
         self.main_llm_frame.pack(expand=True, fill="both")
 
-        # --- Create Comboboxes ---
+        # Create Comboboxes
         self.card_template_combo = ttk.Combobox(
             self.main_llm_frame,
             values=self.card_prompt_templates,
@@ -290,7 +273,7 @@ class VLM_GUI(TkinterDnD.Tk):
         elif prompt_type == 'sd':
             # Always call _populate_generate_SD, which also needs the card text.
             final_card = self.card_output_text_box.get("1.0", tk.END).strip()
-            self._populate_generate_SD(final_caption, final_tags, final_card)
+            self._populate_generate_SD(final_caption,  final_card, final_tags)
 
     def _on_closing(self):
         """
@@ -319,21 +302,21 @@ class VLM_GUI(TkinterDnD.Tk):
         """
         Creates and grids a labeled Text widget with an optional, right-aligned copy button.
         """
-        # --- Create the Label Frame (this will hold the label and optional button) ---
+        # Create the Label Frame (this will hold the label and optional button) ---
         label_frame = ttk.Frame(parent, style='Dark.TFrame')
         label_frame.grid(row=grid_row, column=grid_column, padx=5, pady=(5, 0), sticky="ew")
 
         label = ttk.Label(label_frame, text=label_text, style='Dark.TLabel')
         label.pack(side=tk.LEFT)
 
-        # --- If a copy command is provided, create the button! ---
+        # If a copy command is provided, create the button
         if copy_command:
             copy_button = ttk.Button(label_frame, image=self.copy_icon, command=copy_command, style='Icon.TButton')
             copy_button.pack(side=tk.RIGHT)
             copy_button.bind("<Enter>", self._on_copy_enter)
             copy_button.bind("<Leave>", self._on_copy_leave)
 
-        # --- Create the Text Box Frame (no changes here) ---
+        # Create the Text Box Frame
         outer_frame = ttk.Frame(parent, style='Dark.TFrame')
         outer_frame.grid(row=grid_row + 1, column=grid_column, sticky="nsew", padx=5, pady=5)
         outer_frame.columnconfigure(0, weight=1)
@@ -356,17 +339,20 @@ class VLM_GUI(TkinterDnD.Tk):
         return text_box
 
     def _setup_widgets_llm(self, parent_frame):
-        # The main_frame is now self.main_llm_frame, created in __init__
+        """
+        LLM tab widget setup.
+        """
+        # The main_frame is self.main_llm_frame
         self.main_llm_frame.columnconfigure(0, weight=1)
         self.main_llm_frame.columnconfigure(1, weight=1)
         self.main_llm_frame.rowconfigure(2, weight=1) # Adjusted row for text box
         self.main_llm_frame.rowconfigure(5, weight=1) # Adjusted row for text box
 
-        # --- Place Comboboxes ---
+        # Place Comboboxes
         self.card_template_combo.grid(row=0, column=0, padx=5, pady=(0, 5), sticky="ew")
         self.sd_template_combo.grid(row=0, column=1, padx=5, pady=(0, 5), sticky="ew")
 
-        # --- Input boxes don't get a copy button ---
+        # Input boxes don't get a copy button
         self.card_text_box = self._create_labeled_textbox(
             parent=self.main_llm_frame,
             label_text="Character card Prompt:",
@@ -381,13 +367,13 @@ class VLM_GUI(TkinterDnD.Tk):
             grid_column=1
         )
 
-        # --- Output boxes DO get a copy button! ---
+        # Output boxes created with a copy button
         self.card_output_text_box = self._create_labeled_textbox(
             parent=self.main_llm_frame,
             label_text="Output Character Card:",
             grid_row=4, # Adjusted row
             grid_column=0,
-            copy_command=self._copy_card_output_to_clipboard
+            copy_command=lambda: self.copy_to_clipboard(self.card_output_text_box, "Character Card")
         )
 
         self.sd_output_text_box = self._create_labeled_textbox(
@@ -395,10 +381,10 @@ class VLM_GUI(TkinterDnD.Tk):
             label_text="Output SD Prompt:",
             grid_row=4, # Adjusted row
             grid_column=1,
-            copy_command=self._copy_sd_output_to_clipboard
+            copy_command= lambda: self.copy_to_clipboard(self.sd_output_text_box, "SD Prompt")
         )
 
-        # ... (the rest of the function with the generate buttons is the same) ...
+        # Generate Buttons
         self.card_generate_button = ttk.Button(self.main_llm_frame, text="Generate Card", command=self._generate_card_threaded,
                                                style='Dark.TButton')
         self.card_generate_button.grid(row=3, column=0, sticky="ns", pady=5) # Adjusted row
@@ -448,21 +434,22 @@ class VLM_GUI(TkinterDnD.Tk):
         A generic worker thread for making API calls.
         """
         try:
-            # 1. Get credentials and prompt
+            # Get credentials and prompt
             api_key = self.llm_key_entry.get().strip()
             base_url = self.llm_url_entry.get().strip()
             model_name = self.llm_model_entry.get().strip()
             prompt = input_widget.get("1.0", tk.END).strip()
+            # Values rounded to avoid long floats
             temperature = round(self.temperature_slider.get(), 2)
             frequency_penalty = round(self.frequency_penalty_slider.get(), 2)
             presence_penalty = round(self.presence_penalty_slider.get(), 2)
 
             if not all([api_key, base_url, model_name, prompt]):
-                q.put(("error", "API credentials, model, and prompt cannot be empty."))
+                q.put(("error", "API credentials, model, url and prompt cannot be empty."))
                 q.put(("done", task_type))
                 return
 
-            # 2. Make the API call
+            # Make the API call using ai_utils module
             q.put(("status", f"Calling model {model_name}..."))
             response = ai_utils.call_text_model(
                 api_key=api_key,
@@ -474,12 +461,12 @@ class VLM_GUI(TkinterDnD.Tk):
                 presence_penalty=presence_penalty
             )
 
-            # 3. Update the UI with the result
+            # Update the UI with the result of the task
             if response:
                 q.put(("update_output", (output_widget, response)))
                 q.put(("status", "API call successful."))
             else:
-                q.put(("error", "API call failed. No response received."))
+                q.put(("error", "API call failed!"))
 
         except Exception as e:
             q.put(("error", f"An error occurred during the API call: {e}"))
@@ -493,9 +480,9 @@ class VLM_GUI(TkinterDnD.Tk):
         try:
             message_type, data = self.task_queue.get_nowait()
 
-            if message_type == "status":
+            if message_type == "status": # status update, we display it
                 self.update_status(data)
-            elif message_type == "update_output":
+            elif message_type == "update_output": # updates the control text
                 widget, text = data
                 widget.config(state=tk.NORMAL)
                 widget.delete("1.0", tk.END)
@@ -510,16 +497,16 @@ class VLM_GUI(TkinterDnD.Tk):
                     final_caption = self.output_caption_text.get("1.0", tk.END).strip()
                     final_tags = self.output_tags_text.get("1.0", tk.END).strip()
                     final_card = self.card_output_text_box.get("1.0", tk.END).strip()
-                    self._populate_generate_SD(final_caption, final_tags, final_card)
+                    self._populate_generate_SD(final_caption, final_card, final_tags)
                     self.set_state(AppState.READY_FOR_SD_GENERATION)
                 else:  # The SD prompt finished
                     self.set_state(AppState.READY_FOR_SD_GENERATION)
-                return  # Stop the queue-checking loop
+                return  # Stop the queue-checking loop. We finished card or sd prompt
 
         except queue.Empty:
             pass
 
-        self.after(100, self._process_api_queue)
+        self.after(100, self._process_api_queue) # Schedule again the queue process until done
 
     def _setup_widgets_settings(self, parent_element):
         """Creates and arranges all settings tab widgets."""
@@ -547,7 +534,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.llm_model_entry = ttk.Entry(top_frame, style='Dark.TEntry')
         self.llm_model_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
-        # --- Temperature Slider ---
+        # Temperature Slider
         temp_label = ttk.Label(top_frame, text="Temperature:", style='Dark.TLabel')
         temp_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.temperature_value_label = ttk.Label(top_frame, text="0.7", style='Dark.TLabel')
@@ -556,7 +543,7 @@ class VLM_GUI(TkinterDnD.Tk):
                                             command=lambda val: self.temperature_value_label.config(text=f"{float(val):.2f}"))
         self.temperature_slider.grid(row=2, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
 
-        # --- Frequency Penalty Slider ---
+        # Frequency Penalty Slider
         freq_pen_label = ttk.Label(top_frame, text="Frequency Penalty:", style='Dark.TLabel')
         freq_pen_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.freq_pen_value_label = ttk.Label(top_frame, text="0.0", style='Dark.TLabel')
@@ -565,7 +552,7 @@ class VLM_GUI(TkinterDnD.Tk):
                                                     command=lambda val: self.freq_pen_value_label.config(text=f"{float(val):.2f}"))
         self.frequency_penalty_slider.grid(row=3, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
 
-        # --- Presence Penalty Slider ---
+        # Presence Penalty Slider
         pres_pen_label = ttk.Label(top_frame, text="Presence Penalty:", style='Dark.TLabel')
         pres_pen_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
         self.pres_pen_value_label = ttk.Label(top_frame, text="0.0", style='Dark.TLabel')
@@ -632,7 +619,7 @@ class VLM_GUI(TkinterDnD.Tk):
                 api_key=api_key,
                 base_url=base_url,
                 model=model_name,
-                user_request="hello!"
+                user_request="Hello!"
             )
 
             if response:
@@ -664,7 +651,7 @@ class VLM_GUI(TkinterDnD.Tk):
         self.card_text_box.delete("1.0", tk.END)
         self.card_text_box.insert(tk.END, card_prompt)
 
-    def _populate_generate_SD(self, caption: str, tags: str, character_card: str):
+    def _populate_generate_SD(self, caption: str,  character_card: str, tags: str):
         """
         Populates the Stable Diffusion prompt by replacing placeholders in the
         currently selected template.
@@ -789,7 +776,7 @@ class VLM_GUI(TkinterDnD.Tk):
         output_caption_label = ttk.Label(caption_label_frame, text="Model Output:", style='Dark.TLabel')
         output_caption_label.pack(side=tk.LEFT)  # This stays on the left
 
-        self.copy_caption_button = ttk.Button(caption_label_frame, image=self.copy_icon, command=self.copy_to_clipboard,
+        self.copy_caption_button = ttk.Button(caption_label_frame, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.output_caption_text, "Caption"),
                                               style='Icon.TButton')
         self.copy_caption_button.pack(side=tk.RIGHT)  # <-- CHANGE THIS to tk.RIGHT
         self.copy_caption_button.bind("<Enter>", self._on_copy_enter)
@@ -820,7 +807,7 @@ class VLM_GUI(TkinterDnD.Tk):
         output_tags_label = ttk.Label(tags_label_frame, text="Booru Tags Output:", style='Dark.TLabel')
         output_tags_label.pack(side=tk.LEFT)  # This stays on the left
 
-        self.copy_tags_button = ttk.Button(tags_label_frame, image=self.copy_icon, command=self.copy_tags_to_clipboard,
+        self.copy_tags_button = ttk.Button(tags_label_frame, image=self.copy_icon, command=lambda: self.copy_to_clipboard(self.output_tags_text, "Tags"),
                                            style='Icon.TButton')
         self.copy_tags_button.pack(side=tk.RIGHT)  # <-- CHANGE THIS to tk.RIGHT
         self.copy_tags_button.bind("<Enter>", self._on_copy_enter)
@@ -856,11 +843,12 @@ class VLM_GUI(TkinterDnD.Tk):
         Handles the drag-and-drop file event.
         """
         filepath = event.data.strip('{}')
-        if filepath.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp')):
+        if filepath.lower().endswith(ACCEPTED_IMAGE_EXTENSIONS):
             self.image_path = filepath
             self.load_and_display_image()
         else:
-            messagebox.showerror("Error", "Invalid file type. Please drop a valid image file.")
+            supported_extensions = ', '.join(ACCEPTED_IMAGE_EXTENSIONS)
+            messagebox.showerror("Error", f"Invalid file type.\nAccepted: {supported_extensions}\n Please drop a valid image file.")
 
     def load_and_display_image(self):
         """
@@ -878,9 +866,13 @@ class VLM_GUI(TkinterDnD.Tk):
 
             if self.current_state == AppState.MODEL_LOADED:
                 self.set_state(AppState.READY_TO_GENERATE)
+            elif self.current_state == AppState.MODEL_LOADING:
+                self.update_status("Image ready. Wait for model...")
+            elif self.current_state == AppState.READY_TO_GENERATE:
+                self.update_status("Image ready. Ready to generate.")
             else:
                 # If the model isn't loaded yet, just update the status
-                self.update_status("Image loaded. Now load a model.")
+                self.update_status("Image ready. Now load a model.")
 
         except Exception as e:
             messagebox.showerror("Image Error", f"Failed to load image: {e}")
@@ -918,12 +910,6 @@ class VLM_GUI(TkinterDnD.Tk):
             print(model_id)
             print("Loading model thread...")
             self.model_handler.load_model(self.loaded_profile)
-            # The history manager is no longer the source of truth for VLM models.
-            # The VLM_PROFILES dictionary is. We leave the history logic for now
-            # as it might be used by other parts of the application, but we don't
-            # add VLM models to it anymore.
-            # self.history_manager.add_model_to_history(model_id)
-            # self.model_name_entry.set_completions(self.history_manager.get_history())
 
             if self.image_path:
                 self.set_state(AppState.READY_TO_GENERATE)
@@ -943,25 +929,9 @@ class VLM_GUI(TkinterDnD.Tk):
         self.model_handler.unload_model()
         self.set_state(AppState.IDLE)
 
-    # def generate_threaded(self):
-    #     """
-    #     Initiates text generation in a separate thread.
-    #     """
-    #     prompt = self.llm_url_text.get("1.0", tk.END).strip()
-    #     if not prompt:
-    #         messagebox.showwarning("Input Error", "Prompt cannot be empty.")
-    #         return
-    #
-    #     self.update_status("Generating text...")
-    #     self.generate_button.config(state=tk.DISABLED, text="Generating...")
-    #     self.copy_button.config(state=tk.DISABLED)
-    #
-    #     threading.Thread(target=self._generate_task, args=(prompt,), daemon=True).start()
-
     def set_state(self, new_state: AppState):
         """
-        Manages all UI element states based on the application's current state.
-        This is the single source of truth for the UI's appearance and interactivity.
+        Manages UI element states based on the application's current state.
 
         Args:
             new_state (AppState): The state to transition to.
@@ -975,13 +945,14 @@ class VLM_GUI(TkinterDnD.Tk):
         self.copy_caption_button.config(state='enabled')
         self.copy_tags_button.config(state='enabled')
         self.model_selection_combo.config(state='disabled')
-        self.card_generate_button.config(state='disabled')
-        self.sd_generate_button.config(state='disabled')
         self.card_text_box.config(state='disabled')
         self.sd_text_box.config(state='disabled')
         self.test_button.config(state='enabled')
 
-        # --- Configure UI based on the new state ---
+        # Update default button state
+        self._update_generate_buttons_state()
+
+        # Configure UI based on the new state ---
         if self.current_state == AppState.IDLE:
             self.load_button.config(state='normal')
             self.model_selection_combo.config(state='readonly')
@@ -997,7 +968,10 @@ class VLM_GUI(TkinterDnD.Tk):
             self.unload_button.config(state='normal')
             self.model_selection_combo.config(state='disabled')
             self.test_button.config(state='enabled')
-            self.update_status("Model loaded. Please drop an image.")
+            if not self.image_raw:
+                self.update_status("Model loaded. Please drop an image.")
+            else:
+                self.update_status("Model loaded.")
 
         elif self.current_state == AppState.READY_TO_GENERATE:
             self.load_button.config(text="Loaded")
@@ -1023,7 +997,7 @@ class VLM_GUI(TkinterDnD.Tk):
             self.copy_tags_button.config(state='normal')
             self.unload_button.config(state='normal')
             self.test_button.config(state='enabled')
-            self.update_status("Character Card prompt ready. Click 'Generate Card'.")
+            self.update_status("Character Card prompt ready. -> In Generate Tab, click 'Generate Card'.")
 
         elif self.current_state == AppState.READY_FOR_SD_GENERATION:
             self.generate_button.config(state='normal')
@@ -1043,6 +1017,23 @@ class VLM_GUI(TkinterDnD.Tk):
             self.unload_button.config(state='normal')
             self.test_button.config(state='disabled')
             self.update_status("Generating via API...")
+
+    def _update_generate_buttons_state(self):
+        """
+        A specialist function to manage the state of the 'Generate' tab buttons
+        based on whether their driving text boxes have content.
+        """
+        # Enable card generation if the main VLM output has text.
+        if self.output_caption_text.get("1.0", tk.END).strip():
+            self.card_generate_button.config(state='normal')
+        else:
+            self.card_generate_button.config(state='disabled')
+
+        # Enable SD generation if the character card output has text.
+        if self.card_output_text_box.get("1.0", tk.END).strip():
+            self.sd_generate_button.config(state='normal')
+        else:
+            self.sd_generate_button.config(state='disabled')
 
 
 
@@ -1064,7 +1055,7 @@ class VLM_GUI(TkinterDnD.Tk):
         # Start the worker thread, passing it the queue
         threading.Thread(target=self._generate_task_chain, args=(prompt, self.task_queue), daemon=True).start()
 
-        # Start a loop to check the queue for updates from the thread
+        # Start a loop to check the queue for updates from the thread, this will be rescheduled until done
         self.after(100, self._process_queue)
 
     def _generate_task_chain(self, prompt, q):
@@ -1128,7 +1119,6 @@ class VLM_GUI(TkinterDnD.Tk):
                 messagebox.showerror("Generation Error", data)
             elif message_type == "done":
                 # The chain is finished, populate the next tab
-                # The chain is finished, populate the next tab
                 final_caption = self.output_caption_text.get("1.0", tk.END).strip()
                 final_tags = self.output_tags_text.get("1.0", tk.END).strip()
                 # Set the state first to enable the text boxes
@@ -1141,23 +1131,8 @@ class VLM_GUI(TkinterDnD.Tk):
             # If the queue is empty, do nothing and check again later
             pass
 
-        # Schedule this method to run again after 100ms
+        # Reschedule execution to go over queue again
         self.after(100, self._process_queue)
-
-    def _generate_task(self, prompt):
-        """
-        The actual task of generating the description.
-        """
-        try:
-            response = self.model_handler.generate_description(prompt, self.image_raw)
-            self.update_caption_text(response)
-            self.update_status("Generation complete.")
-            self.copy_caption_button.config(state=tk.NORMAL)
-        except Exception as e:
-            messagebox.showerror("Generation Error", f"An error occurred during generation: {e}")
-            self.update_status("Generation failed.")
-        finally:
-            self.generate_button.config(state=tk.NORMAL, text="Generate Description")
 
     def update_status(self, text):
         """Updates the status bar text."""
@@ -1177,11 +1152,13 @@ class VLM_GUI(TkinterDnD.Tk):
         self.output_tags_text.insert(tk.END, text)
         self.output_tags_text.config(state=tk.DISABLED)
 
-    def copy_to_clipboard(self):
-        """Copies the output text to the clipboard."""
+    def copy_to_clipboard(self, source_control, subject):
+        """Copies from a textbox to the clipboard."""
         self.clipboard_clear()
-        self.clipboard_append(self.output_caption_text.get("1.0", tk.END))
-        self.update_status("Output copied to clipboard.")
+        self.clipboard_append(source_control.get("1.0", tk.END))
+        self.update_status(f"{subject} copied to clipboard.")
+
+
 
     def copy_tags_to_clipboard(self):
         """Copies the tags output text to the clipboard."""

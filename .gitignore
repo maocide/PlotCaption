@@ -12,11 +12,6 @@ _mat/
 # Build
 build/
 dist/
-venv-build-cpu/
-venv-build-gpu/
-PlotCaption-CPU.zip
-PlotCaption-GPU.zip
-
 
 # Other
 .idea

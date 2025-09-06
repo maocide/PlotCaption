@@ -28,6 +28,13 @@ echo.
 echo [4/6] Running PyInstaller to build the application...
 python -m PyInstaller PlotCaption.spec
 
+
+REM --- copy in the install script and launcher ---
+echo.
+echo Copying batch files
+copy /Y .\\deploy\\install.bat .\\dist\\PlotCaption\\install.bat
+copy /Y .\\deploy\\run_plotcaption.bat .\\dist\\PlotCaption\\run_plotcaption.bat
+
 REM --- Rename the Output Folder ---
 echo.
 echo [5/6] Renaming output folder...
