@@ -25,6 +25,8 @@ INSERT_BACKGROUND_COLOR = "white"
 PLACEHOLDER_FG_COLOR = "gray"
 
 # --- Prompt Generation ---
+DEFAULT_CARD_TEMPLATE = "NSFW"
+DEFAULT_SD_TEMPLATE = "NSFW"
 CARD_USER_ROLE = "develop around Main Character personality (Main Character interest/Lover/Rival/Friend/NTR partecipant...)"
 CARD_CHAR_TO_ANALYZE = "Main Character"
 SD_CHAR_TO_ANALYZE = "Character from character card, Main Character"
