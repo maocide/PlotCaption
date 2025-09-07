@@ -90,7 +90,7 @@ For the simplest installation on Windows, you don't need to clone the repository
 
 ### **1\. Clone the repository**
 ```
-git clone https://github.com/your-username/PlotCaption.git
+git clone https://github.com/maocide/PlotCaption.git
 cd PlotCaption
 ```
 ### **2\. Install dependencies**
