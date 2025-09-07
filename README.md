@@ -2,7 +2,7 @@
 
 ### _Turn a single picture into a character's entire life story... and then make more pictures of them._
 
-[**📖 Illustrated User Guide**](https://www.google.com/search?q=%23-illustrated-user-guide-with-billie) | [**🛠️ Installation**](https://www.google.com/search?q=%23%EF%B8%8F-installation) | [**🔧 Modding & Hacking**](https://www.google.com/search?q=%23%EF%B8%8F-for-the-tinkerers-modding--hacking) | [**🌟 Showcase**](https://www.google.com/search?q=%23-example-showcase-from-image-to-character)
+[**📖 Illustrated User Guide**](#-illustrated-user-guide-with-billie) | [**🛠️ Installation**](#-Installation) | [**🔧 Modding & Hacking**](#️-For-the) | [**🌟 Showcase**](#-Example-showcase)
 
 Ever look at an image and think, "I could write a novel about them"? Or maybe, "I wish I could get my Stable Diffusion prompts to actually listen to me"? What if you could do both, at the same time, with one click?
 
@@ -74,6 +74,18 @@ The whole process is broken down into three simple tabs:
 ## **🛠️ Installation**
 
 Ready to get started? Here's the drill:
+
+### Easy Installation (Windows)
+
+For the simplest installation on Windows, you don't need to clone the repository. Just follow these steps:
+
+1.  Go to the [**Latest Release**](https://github.com/maocide/PlotCaption/releases/latest) page.
+
+2.  Under the "Assets" section, download the `.zip` file (e.g., `PlotCaption-v1.0.0.zip`).
+
+3.  Unzip the file to a location of your choice.
+
+4.  Run the included `.bat` scripts to install dependencies and launch the application.
 
 ### **0\. Prerequisites**
 **Python:** This application requires **Python 3.9 or newer** to ensure compatibility with all required libraries. You can download the latest version from the [**official Python website**](https://www.python.org/downloads/).
@@ -175,7 +187,7 @@ Let's use our data to create some magic.
 *   **Step 3:** Click **"Generate SD"** to create the final, detailed prompt.
 *   **Step 4:** Use the copy icons and enjoy your new lore and prompt!
 
-## 🔧 For the Tinkerers (Modding & Hacking)
+## 🔧 For the Tinkerers Modding & Hacking
 
 We know you can't resist looking under the hood. Here's where the fun stuff is:
 
@@ -333,7 +345,7 @@ Negative:
 
 ## **🙏 Acknowledgements & License**
 
-**License:** This project is released under the [**GNU General Public License v3.0**](https://www.google.com/search?q=LICENSE).
+**License:** This project is released under the [**GNU General Public License v3.0**](https://www.gnu.org/licenses/gpl-3.0.html).
 
 **Models:** PlotCaption is powered by amazing open-source models. Please support the creators:
 
