@@ -37,7 +37,7 @@ Running large Vision-Language Models locally is demanding. Here’s what you can
   * **GPU:** An NVIDIA GPU with **16 GB of VRAM or more**.  
   * **System RAM:** 32 GB or more.  
   * **Performance:** On this hardware, model loading should be quick, and caption generation should take less than a minute.  
-* **⚠️ Minimum (For Patient Tinkerers):**  
+* **⚠️ Minimum (Don't expect much):**  
   * **GPU:** An NVIDIA GPU with **8 GB of VRAM**.  
   * **System RAM:** 16 GB.  
   * **Performance:** PlotCaption will automatically use GPU offloading to make this work. However, you should expect **very long generation times** (potentially 15+ minutes per caption) and high system load. Your computer will be working very hard\!  
@@ -125,8 +125,8 @@ Loading the Vision-Language Models (VLMs) is the most memory-intensive part of t
 
 PlotCaption includes a smart loading system to handle different hardware configurations:
 
-* **For systems with \>= 18 GB of VRAM:** The application will load the entire model onto your GPU for the fastest possible performance.  
-* **For systems with \< 18 GB of VRAM (e.g., 16 GB cards):** The application will automatically enable GPU offloading. This intelligently splits the model between your VRAM and system RAM, allowing it to run without out-of-memory errors.  
+* **For systems with \> 16 GB of VRAM:** The application will load the entire model onto your GPU for the fastest possible performance.  
+* **For systems with \<= 16 GB of VRAM (e.g., 16 GB cards):** The application will automatically enable GPU offloading. This intelligently splits the model between your VRAM and system RAM, allowing it to run without out-of-memory errors.  
 * **For CPU-only installations:** VRAM is not used, and the entire model is loaded into your system RAM.
 
 ## 📖 Illustrated User Guide (with Billie!)
