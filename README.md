@@ -2,8 +2,6 @@
 
 ### _Turn a single picture into a character's entire life story... and then make more pictures of them._
 
-[**📖 Illustrated User Guide**](#-illustrated-user-guide-with-billie) | [**🛠️ Installation**](#-Installation) | [**🔧 Modding & Hacking**](#️-For-the) | [**🌟 Showcase**](#-Example-showcase)
-
 Ever look at an image and think, "I could write a novel about them"? Or maybe, "I wish I could get my Stable Diffusion prompts to actually listen to me"? What if you could do both, at the same time, with one click?
 
 PlotCaption is your local, private, and slightly unhinged AI sidekick that does just that. Feed it an image, and it spits out two things:
