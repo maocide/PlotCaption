@@ -1,6 +1,6 @@
 @echo off
 ECHO =================================================================
-ECHO PLOT Captioning CPU Installer
+ECHO PLOTCaption CPU Installer
 ECHO =================================================================
 ECHO This will create a Python virtual environment in a 'venv' folder.
 ECHO.

@@ -1,5 +1,5 @@
 @echo off
-ECHO --- Starting PLOT Captioning ---
+ECHO --- Starting :PLOTCaption ---
 
 :: Check if the virtual environment exists
 IF NOT EXIST venv\Scripts\activate.bat (

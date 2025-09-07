@@ -6,6 +6,8 @@ from tkinter import messagebox, scrolledtext
 import threading
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
+
+from about_window import AboutWindow
 from assets_utils import resource_path
 
 from config import MAX_THUMBNAIL_SIZE, INACTIVE_TAB_COLOR, DARK_COLOR, FIELD_BORDER_AREA_COLOR, \
@@ -50,7 +52,7 @@ class VLM_GUI(TkinterDnD.Tk):
         super().__init__()
 
         # Application title, icon, window size
-        self.title(f"PLOT Captioning in detail v{APP_VERSION}")
+        self.title(f"PlotCaption v{APP_VERSION}")
         self.iconbitmap(resource_path('assets/plot_icon.ico'))
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
@@ -531,6 +533,10 @@ class VLM_GUI(TkinterDnD.Tk):
         self.clipboard_clear()
         self.clipboard_append(source_control.get("1.0", tk.END))
         self.update_status(f"{subject} copied to clipboard.")
+
+    def open_about_window(self):
+        """Creates and shows the About window."""
+        about = AboutWindow(self)
 
 if __name__ == "__main__":
 

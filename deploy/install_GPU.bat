@@ -1,6 +1,6 @@
 @echo off
 ECHO =================================================================
-ECHO PLOT Captioning GPU (NVIDIA/CUDA) Installer
+ECHO PLOTCaption GPU (NVIDIA/CUDA) Installer
 ECHO =================================================================
 ECHO This will create a Python virtual environment in a 'venv' folder.
 ECHO IMPORTANT: You must have an NVIDIA GPU with CUDA drivers installed.
@@ -21,7 +21,7 @@ ECHO --- Step 2: Uninstalling any old PyTorch versions...
 pip uninstall torch torchvision torchaudio -y
 
 ECHO --- Step 3: Installing CUDA-version of PyTorch...
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 ECHO --- Step 4: Installing all other dependencies from requirements.txt...
 pip install -r requirements.txt

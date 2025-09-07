@@ -2,6 +2,7 @@ import queue
 import threading
 import tkinter as tk
 
+from sympy.physics.units import temperature
 from tkinterdnd2 import DND_FILES
 
 import ai_utils
@@ -615,86 +616,122 @@ class SettingsTab(ttk.Frame):
         super().__init__(parent, style='Dark.TFrame')
         self.controller = controller
 
-        """Creates and arranges all settings tab widgets."""
-        self.config(padding=15)
-        top_frame = ttk.Frame(self, style='Dark.TFrame')
-        top_frame.pack(fill=tk.X, pady=(0, 10))
-        top_frame.columnconfigure(1, weight=1)
-        top_frame.columnconfigure(3, weight=1)
+        # The main container frame that holds everything
+        main_frame = ttk.Frame(self, style='Dark.TFrame', padding=15)
+        main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # API URL
-        url_label = ttk.Label(top_frame, text="API Url:", style='Dark.TLabel')
-        url_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.llm_url_entry = ttk.Entry(top_frame, style='Dark.TEntry')
-        self.llm_url_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        # A dedicated frame for the button at the bottom
+        bottom_frame = ttk.Frame(self, style='Dark.TFrame', padding=(15, 0, 15, 15))
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
-        # API Key
-        llm_key_label = ttk.Label(top_frame, text="API Key:", style='Dark.TLabel')
-        llm_key_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-        self.llm_key_entry = ttk.Entry(top_frame, style='Dark.TEntry', show='*')
-        self.llm_key_entry.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+        # --- Configure the grid inside the main_frame ---
+        # Make the second column (index 1) where the sliders/entries live, expand
+        main_frame.columnconfigure(1, weight=1)
 
-        # Model Name
-        llm_model_label = ttk.Label(top_frame, text="Model:", style='Dark.TLabel')
-        llm_model_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-        self.llm_model_entry = ttk.Entry(top_frame, style='Dark.TEntry')
-        self.llm_model_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        # --- API and Model Entries ---
+        # Row 0: API URL
+        url_label = ttk.Label(main_frame, text="API Url:", style='Dark.TLabel')
+        url_label.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.llm_url_entry = ttk.Entry(main_frame, style='Dark.TEntry')
+        self.llm_url_entry.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
 
-        # Temperature Slider
-        temp_label = ttk.Label(top_frame, text="Temperature:", style='Dark.TLabel')
-        temp_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.temperature_value_label = ttk.Label(top_frame, text="0.7", style='Dark.TLabel')
-        self.temperature_value_label.grid(row=2, column=3, padx=5, pady=5, sticky="w")
-        self.temperature_slider = ttk.Scale(top_frame, from_=0.0, to=2.0, orient=tk.HORIZONTAL,
-                                            command=lambda val: self.temperature_value_label.config(
-                                                text=f"{float(val):.2f}"))
-        self.temperature_slider.grid(row=2, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
+        # Row 1: API Key & Model
+        llm_key_label = ttk.Label(main_frame, text="API Key:", style='Dark.TLabel')
+        llm_key_label.grid(row=1, column=0, padx=(0, 5), pady=5, sticky="w")
+        self.llm_key_entry = ttk.Entry(main_frame, style='Dark.TEntry', show='*')
+        self.llm_key_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
-        # Frequency Penalty Slider
-        freq_pen_label = ttk.Label(top_frame, text="Frequency Penalty:", style='Dark.TLabel')
-        freq_pen_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.freq_pen_value_label = ttk.Label(top_frame, text="0.0", style='Dark.TLabel')
-        self.freq_pen_value_label.grid(row=3, column=3, padx=5, pady=5, sticky="w")
-        self.frequency_penalty_slider = ttk.Scale(top_frame, from_=-2.0, to=2.0, orient=tk.HORIZONTAL,
-                                                  command=lambda val: self.freq_pen_value_label.config(
-                                                      text=f"{float(val):.2f}"))
-        self.frequency_penalty_slider.grid(row=3, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
+        llm_model_label = ttk.Label(main_frame, text="Model:", style='Dark.TLabel')
+        llm_model_label.grid(row=1, column=2, padx=5, pady=5, sticky="w")
+        self.llm_model_entry = ttk.Entry(main_frame, style='Dark.TEntry')
+        self.llm_model_entry.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
 
-        # Presence Penalty Slider
-        pres_pen_label = ttk.Label(top_frame, text="Presence Penalty:", style='Dark.TLabel')
-        pres_pen_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        self.pres_pen_value_label = ttk.Label(top_frame, text="0.0", style='Dark.TLabel')
-        self.pres_pen_value_label.grid(row=4, column=3, padx=5, pady=5, sticky="w")
-        self.presence_penalty_slider = ttk.Scale(top_frame, from_=-2.0, to=2.0, orient=tk.HORIZONTAL,
-                                                 command=lambda val: self.pres_pen_value_label.config(
-                                                     text=f"{float(val):.2f}"))
-        self.presence_penalty_slider.grid(row=4, column=1, padx=5, pady=5, sticky="ew", columnspan=2)
-
-        # Load existing settings
-        self.llm_url_entry.insert(0, self.controller.settings.get("base_url", ""))
-        self.llm_model_entry.insert(0, self.controller.settings.get("model_name", ""))
-        self.llm_key_entry.insert(0, self.controller.settings.get("api_key", ""))
-
-        # --- Buttons ---
-        button_frame = ttk.Frame(top_frame, style='Dark.TFrame')
-        button_frame.grid(row=1, column=3, padx=5, pady=5, sticky="e")
+        # Row 2: Save/Test Buttons
+        button_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        button_frame.grid(row=1, column=4, padx=5, pady=5, sticky="e")
         self.save_button = ttk.Button(button_frame, text="Save", command=self._save_api_settings, style='Dark.TButton')
         self.save_button.pack(side=tk.LEFT, padx=(0, 5))
         self.test_button = ttk.Button(button_frame, text="Test", command=self._test_api_connection_threaded,
                                       style='Dark.TButton')
         self.test_button.pack(side=tk.LEFT)
 
-        # Set initial slider values from loaded settings
+        # --- Temperature Slider Row ---
+        temp_label = ttk.Label(main_frame, text="Temperature:", style='Dark.TLabel')
+        temp_label.grid(row=3, column=0, padx=(0, 5), pady=5, sticky="w")
+
+        temp_slider_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        temp_slider_frame.grid(row=3, column=1, columnspan=4, sticky="ew")
+
+        self.temperature_slider = ttk.Scale(temp_slider_frame, from_=0.0, to=2.0, orient=tk.HORIZONTAL,
+                                            command=lambda val: self.temperature_value_label.config(
+                                                text=f"{float(val):.2f}"))
+        self.temperature_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+
+        self.temperature_value_label = ttk.Label(temp_slider_frame, text="0.70", style='Dark.TLabel', width=5)
+        self.temperature_value_label.pack(side=tk.LEFT, padx=5)
+
+        temperature_reset_button = ttk.Button(temp_slider_frame, text="Reset", style='Dark.TButton', width=6,
+                                       command=lambda: self.temperature_slider.set(0.7))
+        temperature_reset_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # --- Frequency Penalty Slider Row ---
+        freq_pen_label = ttk.Label(main_frame, text="Frequency Penalty:", style='Dark.TLabel')
+        freq_pen_label.grid(row=4, column=0, padx=(0, 5), pady=5, sticky="w")
+
+        freq_slider_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        freq_slider_frame.grid(row=4, column=1, columnspan=4, sticky="ew")
+
+        self.frequency_penalty_slider = ttk.Scale(freq_slider_frame, from_=-2.0, to=2.0, orient=tk.HORIZONTAL,
+                                                  command=lambda val: self.freq_pen_value_label.config(
+                                                      text=f"{float(val):.2f}"))
+        self.frequency_penalty_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+
+        self.freq_pen_value_label = ttk.Label(freq_slider_frame, text="0.00", style='Dark.TLabel', width=5)
+        self.freq_pen_value_label.pack(side=tk.LEFT, padx=5)
+
+        freq_reset_button = ttk.Button(freq_slider_frame, text="Reset", style='Dark.TButton', width=6,
+                                       command=lambda: self.frequency_penalty_slider.set(0.0))
+        freq_reset_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # --- Presence Penalty Slider Row ---
+        pres_pen_label = ttk.Label(main_frame, text="Presence Penalty:", style='Dark.TLabel')
+        pres_pen_label.grid(row=5, column=0, padx=(0, 5), pady=5, sticky="w")
+
+        pres_slider_frame = ttk.Frame(main_frame, style='Dark.TFrame')
+        pres_slider_frame.grid(row=5, column=1, columnspan=4, sticky="ew")
+
+        self.presence_penalty_slider = ttk.Scale(pres_slider_frame, from_=-2.0, to=2.0, orient=tk.HORIZONTAL,
+                                                 command=lambda val: self.pres_pen_value_label.config(
+                                                     text=f"{float(val):.2f}"))
+        self.presence_penalty_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+
+        self.pres_pen_value_label = ttk.Label(pres_slider_frame, text="0.00", style='Dark.TLabel', width=5)
+        self.pres_pen_value_label.pack(side=tk.LEFT, padx=5)
+
+        pres_reset_button = ttk.Button(pres_slider_frame, text="Reset", style='Dark.TButton', width=6,
+                                       command=lambda: self.presence_penalty_slider.set(0.0))
+        pres_reset_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # --- Load existing settings ---
+        self.llm_url_entry.insert(0, self.controller.settings.get("base_url", ""))
+        self.llm_model_entry.insert(0, self.controller.settings.get("model_name", ""))
+        self.llm_key_entry.insert(0, self.controller.settings.get("api_key", ""))
+
+        # --- Set initial slider values ---
         temp_val = self.controller.settings.get("temperature", 0.7)
         freq_pen_val = self.controller.settings.get("frequency_penalty", 0.0)
         pres_pen_val = self.controller.settings.get("presence_penalty", 0.0)
-
         self.temperature_slider.set(temp_val)
         self.temperature_value_label.config(text=f"{temp_val:.2f}")
         self.frequency_penalty_slider.set(freq_pen_val)
         self.freq_pen_value_label.config(text=f"{freq_pen_val:.2f}")
         self.presence_penalty_slider.set(pres_pen_val)
         self.pres_pen_value_label.config(text=f"{pres_pen_val:.2f}")
+
+        # --- About Button in the bottom_frame ---
+        about_button = ttk.Button(bottom_frame, text="About This App", command=self.controller.open_about_window,
+                                  style='Dark.TButton')
+        about_button.pack(side=tk.RIGHT)
 
         print("Settings Tab initialized!") # Placeholder
 
@@ -711,7 +748,7 @@ class SettingsTab(ttk.Frame):
 
         if success:
             if not silent:
-                self.controller.update_status("API settings saved successfully.")
+                self.controller.update_status(f"""API settings saved successfully in \"{self.controller.persistence.get_settings_path()}\"""")
                 messagebox.showinfo("Settings Saved", "Your API settings have been saved.")
         else:
             if not silent:
@@ -723,6 +760,28 @@ class SettingsTab(ttk.Frame):
         Tests the API connection in a separate thread.
         """
         threading.Thread(target=self._test_api_task, daemon=True).start()
+
+    def center_window(self, parent):
+        """Calculates the coordinates to center this window over its parent."""
+        # Update idle tasks to make sure widgets have been drawn
+        self.update_idletasks()
+
+        # Get parent window's geometry
+        parent_x = parent.winfo_x()
+        parent_y = parent.winfo_y()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+
+        # Get this window's requested size
+        window_width = self.winfo_width()
+        window_height = self.winfo_height()
+
+        # Calculate the position
+        pos_x = parent_x + (parent_width // 2) - (window_width // 2)
+        pos_y = parent_y + (parent_height // 2) - (window_height // 2)
+
+        # Set the geometry
+        self.geometry(f"+{pos_x}+{pos_y}")
 
     def _test_api_task(self):
         """

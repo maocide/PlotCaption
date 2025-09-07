@@ -16,13 +16,13 @@ It's an entire creative workflow in a box, designed to run on your machine. By c
 
 We built PlotCaption for a few special kinds of people. See if you fit the bill:
 
-*   **The Privacy-Conscious Tinkerer:** You hang out on r/LocalLLM, you've got Oobabooga or LM Studio running, and you believe your data is your data. You want powerful tools that run offline. We got you. PlotCaption's core image analysis is 100% local, and it's designed to plug directly into your local LLM server for a fully offline creative process.
-*   **The Creative Roleplayer & Storyteller:** You're building worlds on Janitor AI or writing the next great web novel. You need characters with depth, personality, and maybe a few... _spicy_ details. PlotCaption is your cure for creative block, instantly generating rich character cards from a single image. It's uncensored, so you can explore the themes you want without a corporate AI wagging its finger at you.
+*   **The Creative Roleplayer & Storyteller:** You live in SillyTavern, maybe  you're building worlds on Janitor AI or writing the next great web novel. You need characters with depth, personality, and maybe a few... _spicy_ details. PlotCaption is your cure for creative block, instantly generating rich character cards from a single image. It's uncensored, so you can explore the themes you want without a corporate AI wagging its finger at you.
+*   **The Privacy-Conscious Tinkerer:** You hang out on r/LocalLLM, you've got Oobabooga, KoboldCPP or LM Studio running, and you believe your data is your data. You want powerful tools that run offline. We got you. PlotCaption's core image analysis is 100% local, and it's designed to plug directly into your local LLM server for a fully offline creative process.
 *   **The Stable Diffusion Workflow Optimizer:** You're a power user of ComfyUI or A1111, but you know that a good prompt is half the battle. You want to create consistent characters and scenes without spending hours crafting the perfect string of tags. PlotCaption generates narrative-style, highly-detailed prompts that go way beyond `1girl, smile`.
 
 ## ✨ Features
 
-*   🔮 **Dual-Output Magic:** The only tool that generates both character lore and a Stable Diffusion prompt from a single image. It's a two-for-one creative explosion!
+*   🔮 **Dual-Output Magic:** The tool that generates both character lore and a Stable Diffusion prompt from a single image. It's a two-for-one creative explosion!
 *   🏠 **Hybrid Local Power:** Core image analysis runs 100% on your machine. For the creative text generation, plug in your own local LLM (like Oobabooga or LM Studio) for total privacy, or connect to your favorite remote API (configured in Settings) for convenience. You're in complete control.
 *   🔓 **Uncensored by Design:** We believe in creative freedom. PlotCaption is built to explore the full spectrum of fictional characters and themes, without judgment.
 *   🧠 **Pluggable AI Brains:** Comes with profiles for popular Vision-Language Models (VLMs) like ToriiGate and JoyCaption. Want to add a new one? It's as easy as editing a Python file.
@@ -30,6 +30,24 @@ We built PlotCaption for a few special kinds of people. See if you fit the bill:
 *   🖥️ **Slick, Modern UI:** A multi-tabbed, dark-themed interface built with `tkinter` that's easy to navigate and won't burn your retinas at 3 AM.
 *   🔄 **Multi-Threaded & Responsive:** The UI won't freeze while the AI is thinking. We're not monsters.
 *   🎛️ **Fine-Tuned Control:** The Settings tab gives you direct control over the LLM's creativity with sliders for **Temperature**, **Frequency Penalty**, and **Presence Penalty**.
+
+## **Hardware Requirements & Performance**
+
+Running large Vision-Language Models locally is demanding. Here’s what you can expect:
+
+* **✅ Recommended (For a Smooth Experience):**  
+  * **GPU:** An NVIDIA GPU with **16 GB of VRAM or more**.  
+  * **System RAM:** 32 GB or more.  
+  * **Performance:** On this hardware, model loading should be quick, and caption generation should take less than a minute.  
+* **⚠️ Minimum (For Patient Tinkerers):**  
+  * **GPU:** An NVIDIA GPU with **8 GB of VRAM**.  
+  * **System RAM:** 16 GB.  
+  * **Performance:** PlotCaption will automatically use GPU offloading to make this work. However, you should expect **very long generation times** (potentially 15+ minutes per caption) and high system load. Your computer will be working very hard\!  
+* **💻 CPU Only:**  
+  * **System RAM:** 32 GB or more is strongly recommended.  
+  * **Performance:** This is the slowest option and is intended for users who want to test the application's functionality without a compatible GPU. Expect very long processing times.
+
+**Future Plans:** We are actively working on integrating quantized models (like GGUF via LlamaCPP) in a future update, which will significantly lower the VRAM and system requirements and improve performance on lower-end hardware.
 
 ## 🚀 How it Works (The 3-Step Magic Trick)
 
@@ -53,38 +71,53 @@ The whole process is broken down into three simple tabs:
         *   **Temperature:** Controls randomness. Lower values are more predictable, higher values are more creative.
         *   **Frequency & Presence Penalty:** These sliders help reduce repetition. Increase them to encourage the AI to use a wider vocabulary.
 
-## 🛠️ Installation
+## **🛠️ Installation**
 
 Ready to get started? Here's the drill:
 
-1.  **Clone the repository:**
+### **0\. Prerequisites**
+**Python:** This application requires **Python 3.9 or newer** to ensure compatibility with all required libraries. You can download the latest version from the [**official Python website**](https://www.python.org/downloads/).
+
+### **1\. Clone the repository**
+```
+git clone https://github.com/your-username/PlotCaption.git
+cd PlotCaption
+```
+### **2\. Install dependencies**
+It's highly recommended to use a virtual environment.
     
-    ```
-    git clone [https://github.com/your-username/PlotCaption.git](https://github.com/your-username/PlotCaption.git)
-    cd PlotCaption
-    
-    
-    ```
-2.  Install the dependencies:
-    
-    It's recommended to use a virtual environment.
-    
+*   **For CPU-only:**
+
     ```
     python -m venv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    pip install torch torchvision torchaudio
     pip install -r requirements.txt
-    
-    
-    ```
-3.  **Run the application:**
-    
-    ```
-    python plotcaption.py
-    
-    
     ```
     
-    That's it! The GUI should appear, and you can start your creative journey.
+*   **To use CUDA acceleration:**
+    ```
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    pip install -r requirements.txt
+    ```
+### **3\. Run the application**
+```
+python plotcaption.py
+```
+    
+That's it! The GUI should appear, and you can start your creative journey.
+
+#### **A Note on VRAM & Smart Offloading**
+
+Loading the Vision-Language Models (VLMs) is the most memory-intensive part of this application. Based on our testing, the 13B models use approximately **15.5 GB** of VRAM.
+
+PlotCaption includes a smart loading system to handle different hardware configurations:
+
+* **For systems with \>= 18 GB of VRAM:** The application will load the entire model onto your GPU for the fastest possible performance.  
+* **For systems with \< 18 GB of VRAM (e.g., 16 GB cards):** The application will automatically enable GPU offloading. This intelligently splits the model between your VRAM and system RAM, allowing it to run without out-of-memory errors.  
+* **For CPU-only installations:** VRAM is not used, and the entire model is loaded into your system RAM.
 
 ## 📖 Illustrated User Guide (with Billie!)
 
@@ -102,7 +135,7 @@ Before you start, we'll need to connect the app to a text-generation AI.
 
 <p align="center">
 
-<img src="assets\billie_laptop.png" width="600">
+<img src="assets\billie_laptop.png" width="700">
 
 </p>
 
@@ -114,9 +147,11 @@ Before you start, we'll need to connect the app to a text-generation AI.
 
 Now for the fun part! Let's analyze an image.
 
+❗ Heads-Up: One-Time Model Download\!
+The first time you load a Vision Model, the application will automatically download it from Hugging Face. These models are quite large (often 25-30 GB\!), so this initial download may take a considerable amount of time. Please be patient and check the console window for progress.
 <p align="center">
 
-<img src="assets\billie_analysis.png" width="600">
+<img src="assets\billie_analysis.png" width="700">
 
 </p>
 
@@ -131,7 +166,7 @@ Let's use our data to create some magic.
 
 <p align="center">
 
-<img src="assets\billie_cooking.png" width="600">
+<img src="assets\billie_cooking.png" width="700">
 
 </p>
 
@@ -174,7 +209,7 @@ Here is a complete, real-world example of the PlotCaption workflow, starting wit
 
 ### 1\. The Input Image
 
-The process started with this image of "Kurohana," a catgirl maid.
+The process started with this image of "Kurohana," a catgirl maid. Her name was invented by the LLM (DeepSeek 3.1 Chat in this case).
 
 <p align="center">
 
@@ -282,6 +317,10 @@ Kurohana: *A soft blush dusts her cheeks as she sets down her feather duster, sm
 
 Finally, all of this information was combined to create a highly detailed and context-aware prompt.
 
+<details>
+
+<summary><strong>Click to view SD prompt</strong></summary>
+
 ```
 Positive:
 (masterpiece, best quality, 1girl, solo, black_hair, green_eyes, cat_ears, cat_tail, blush, smile, looking_at_viewer, hand_up, waving, maid_headdress, red_ribbon, black_dress, gold_buttons, maid_apron, frilled_apron, puffy_sleeves, orange_bow, neck_ribbon, holding_feather_duster, cowboy_shot, indoors, sunbeam, window, wooden_dresser), A cheerful catgirl maid named Kurohana waves while holding a feather duster in a sunlit room, smiling warmly at the viewer.
@@ -290,3 +329,23 @@ Negative:
 (embedding:lazyhand:1.1), (embedding:lazyneg:1.1), worst quality, low quality, blurry, sketch, watermark, signature, artist name, bad anatomy, bad hands, malformed hands, extra limbs, disfigured, poorly drawn, text, error
 
 ```
+</details>
+
+## **🙏 Acknowledgements & License**
+
+**License:** This project is released under the [**GNU General Public License v3.0**](https://www.google.com/search?q=LICENSE).
+
+**Models:** PlotCaption is powered by amazing open-source models. Please support the creators:
+
+* **JoyCaption (llava-jp-13b-v1.0):** [fancyfeast/llama-joycaption-beta-one-hf-llava](https://huggingface.co/fancyfeast/llama-joycaption-beta-one-hf-llava)  
+* **ToriiGate (ToriiGate-v0.4-7B):** [Minthy/ToriiGate-v0.4-7B](https://huggingface.co/Minthy/ToriiGate-v0.4-7B)
+
+For best results, we recommend checking their model cards on Hugging Face for specific prompting advice.
+
+## 💬 Feedback & Contributing
+
+Have a question, found a bug, or have a great idea for a new feature? We'd love to hear from you! Please use the official GitHub channels to get in touch:
+
+* **For Bug Reports & Feature Requests:** Please open a new **[Issue](https://github.com/maocide/PlotCaption/issues)**. Provide as much detail as possible so we can help you out.
+
+---

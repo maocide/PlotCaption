@@ -90,3 +90,13 @@ class PersistenceManager:
         except IOError as e:
             print(f"Error saving settings: {e}")
             return False
+
+    def get_settings_path(self):
+        """
+        Returns the path to the JSON settings file.
+        Just to be possible to show the user.
+
+        Returns:
+            str: the path
+        """
+        return self.settings_file_path
