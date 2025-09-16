@@ -53,7 +53,13 @@ class VLM_GUI(TkinterDnD.Tk):
 
         # Application title, icon, window size
         self.title(f"PlotCaption v{APP_VERSION}")
-        self.iconbitmap(resource_path('assets/plot_icon.ico'))
+        #self.iconbitmap(resource_path('assets/plot_icon.ico')
+
+        # Create a PhotoImage object from PNG file
+        icon_image = tk.PhotoImage(file=resource_path('assets/plot-icon.png'))
+        # Set it as the window icon for this window and future top-level windows
+        self.iconphoto(True, icon_image)
+
         self.geometry("900x750")
         self.configure(bg=DARK_COLOR)
 
